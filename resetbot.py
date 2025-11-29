@@ -1,3 +1,15 @@
+import sys
+import subprocess
+
+try:
+    import imghdr
+except ModuleNotFoundError:
+
+    import types
+    imghdr = types.ModuleType('imghdr')
+    imghdr.test = lambda *args: None
+    sys.modules['imghdr'] = imghdr
+
 import requests as rq,time,random,json,os,re,asyncio,hashlib,uuid
 from telethon import TelegramClient,events,Button
 from concurrent.futures import ThreadPoolExecutor
