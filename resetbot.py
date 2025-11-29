@@ -3,7 +3,6 @@ from telethon import TelegramClient,events,Button
 from concurrent.futures import ThreadPoolExecutor
 from user_agent import generate_user_agent
 from datetime import datetime
-from cfonts import render
 
 BOT_TOKEN="8465467291:AAHvxM0tn-4pMZr8_5pJMrBMBsVRdr235yg"
 API_ID=6
