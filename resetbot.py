@@ -142,8 +142,7 @@ async def require_member(e):
         if await check_member(uid):save_verified(uid);return True
         else:
             m=[[Button.url("𝗖𝗵𝗮𝗻𝗻𝗲𝗹 🚀",channel_link)],[Button.inline("𝗜'𝘃𝗲 𝗝𝗼𝗶𝗻𝗲𝗱 ✅","verify_member")]]
-            try:await e.reply("**Join Channel To Use The Bot 🔒🤖**",file='https://raw.githubusercontent.com/HloSpidey/Insta-Acc-Creater/refs/heads/main/ss.jpg',buttons=m)
-            except:await e.reply("**Join Channel To Use The Bot 🔒🤖**",buttons=m)
+            await e.reply("**Join Channel To Use The Bot 🔒🤖**",buttons=m)
             return False
     else:return True
 
@@ -176,8 +175,7 @@ async def start_h(e):
     if uid in user_states:del user_states[uid]
     m=[[Button.url("🕷️𝗖𝗼𝗻𝘁𝗮𝗰𝘁 𝗠𝗲","https://t.me/HloSpidey"),Button.url("𝗖𝗵𝗮𝗻𝗻𝗲𝗹🕷️",channel_link)]]
     cap="**I'M Reset Bot , By @HloSpidey**\n\n**Use My Commands:**\n/reset - Single Email / Username\n/bulk - Bulk Accounts Reset"
-    try:await e.reply(cap,file='https://raw.githubusercontent.com/HloSpidey/Insta-Acc-Creater/refs/heads/main/ss.jpg',buttons=m)
-    except:await e.reply(cap,buttons=m)
+    await e.reply(cap,buttons=m)
 
 async def reset_h(e):
     if not await require_member(e):return
@@ -443,8 +441,7 @@ async def verify_h(e):
     if await check_member(uid):
         save_verified(uid);m=[[Button.url("🕷️𝗖𝗼𝗻𝘁𝗮𝗰𝘁 𝗠𝗲","https://t.me/HloSpidey"),Button.url("𝗖𝗵𝗮𝗻𝗻𝗲𝗹🕷️",channel_link)]]
         cap="**I'M Reset Bot , By @HloSpidey**\n\n**Use My Commands:**\n/reset - Single Email / Username\n/bulk - Bulk Accounts Reset"
-        try:await e.edit(cap,file='https://raw.githubusercontent.com/HloSpidey/Insta-Acc-Creater/refs/heads/main/ss.jpg',buttons=m)
-        except:await e.edit(cap,buttons=m)
+        await e.edit(cap,buttons=m)
     else:await e.answer("You Haven'T Joined The Channel Yet!",alert=True)
 
 @client.on(events.CallbackQuery(pattern=rb'keep_(\d+)'))
