@@ -1,33 +1,9 @@
-import sys
-import os
-
-try:
-    import requests as rq
-except ImportError:
-    print("Error: 'requests' module not available")
-    sys.exit(1)
-
-try:
-    from telethon import TelegramClient, events, Button
-except ImportError:
-    print("Error: 'telethon' module not available") 
-    sys.exit(1)
-
-try:
-    from user_agent import generate_user_agent
-except ImportError:
-    print("Error: 'user-agent' module not available")
-    sys.exit(1)
-
-try:
-    from cfonts import render
-except ImportError:
-    print("Error: 'cfonts' module not available")
-    sys.exit(1)
-
-import time, random, json, re, asyncio, hashlib, uuid
+import requests as rq,time,random,json,os,re,asyncio,hashlib,uuid
+from telethon import TelegramClient,events,Button
 from concurrent.futures import ThreadPoolExecutor
+from user_agent import generate_user_agent
 from datetime import datetime
+from cfonts import render
 
 BOT_TOKEN="8465467291:AAHvxM0tn-4pMZr8_5pJMrBMBsVRdr235yg"
 API_ID=6
