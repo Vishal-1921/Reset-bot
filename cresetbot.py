@@ -1,10 +1,7 @@
 import sys
 import subprocess
 import pkg_resources
-
-required = {
-    'requests', 'telethon', 'user-agent', 'cfonts', 'aiohttp'
-}
+required = {'requests', 'telethon', 'user-agent', 'cfonts', 'aiohttp'}
 installed = {pkg.key for pkg in pkg_resources.working_set}
 missing = required - installed
 
@@ -19,6 +16,7 @@ from concurrent.futures import ThreadPoolExecutor
 from user_agent import generate_user_agent
 from datetime import datetime
 from cfonts import render
+
 BOT_TOKEN="8465467291:AAHvxM0tn-4pMZr8_5pJMrBMBsVRdr235yg"
 API_ID=6
 API_HASH="eb06d4abfb49dc3eeb1aeb98ae0f581e"
