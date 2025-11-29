@@ -1,3 +1,18 @@
+import sys
+import subprocess
+import pkg_resources
+
+required = {
+    'requests', 'telethon', 'user-agent', 'cfonts', 'aiohttp'
+}
+installed = {pkg.key for pkg in pkg_resources.working_set}
+missing = required - installed
+
+if missing:
+    print(f"Installing missing packages: {missing}")
+    python = sys.executable
+    subprocess.check_call([python, '-m', 'pip', 'install', *missing], stdout=subprocess.DEVNULL)
+
 import requests as rq,time,random,json,os,re,asyncio,hashlib,uuid
 from telethon import TelegramClient,events,Button
 from concurrent.futures import ThreadPoolExecutor
