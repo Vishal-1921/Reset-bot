@@ -433,11 +433,11 @@ async def manage_sessions_h(e):
     for i,sid in enumerate(SESSION_IDS,1):
         m=[[Button.inline("**Keep**",f"keep_{i}"),Button.inline("**Remove**",f"remove_{i}")]];await e.reply(f"**Session {i}:**\n`{sid}`",buttons=m)
 
-@client.on(events.CallbackQuery(pattern=b'cancel_broadcast'))
+@client.on(events.CallbackQuery(pattern=rb'cancel_broadcast'))
 async def cancel_broadcast_h(e):
     global broadcast_active;broadcast_active=False;await e.answer("**Broadcast Cancellation Initiated...**");await e.edit("**Cancelling Broadcast...**\n\n**Please Wait While We Stop The Broadcast And Delete Sent Messages.**")
 
-@client.on(events.CallbackQuery(pattern=b'verify_member'))
+@client.on(events.CallbackQuery(pattern=rb'verify_member'))
 async def verify_h(e):
     uid=e.sender_id
     if await check_member(uid):
@@ -447,10 +447,10 @@ async def verify_h(e):
         except:await e.edit(cap,buttons=m)
     else:await e.answer("You Haven'T Joined The Channel Yet!",alert=True)
 
-@client.on(events.CallbackQuery(pattern=b'keep_(\d+)'))
+@client.on(events.CallbackQuery(pattern=rb'keep_(\d+)'))
 async def keep_session_h(e):await e.answer("Session Kept ✅",alert=False)
 
-@client.on(events.CallbackQuery(pattern=b'remove_(\d+)'))
+@client.on(events.CallbackQuery(pattern=rb'remove_(\d+)'))
 async def remove_session_h(e):
     i=int(e.pattern_match.group(1))-1
     if 0<=i<len(SESSION_IDS):
