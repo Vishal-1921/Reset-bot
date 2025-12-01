@@ -1,14 +1,12 @@
-import sys
-import subprocess
+import os
+os.system('pip install requests')
+os.system('pip install random')
+os.system('pip install asyncio')
+os.system('pip install hashlib')
+os.system('pip install telethon')
+os.system('pip install user_agent')
+os.system('pip install datetime')
 
-try:
-    import imghdr
-except ModuleNotFoundError:
-
-    import types
-    imghdr = types.ModuleType('imghdr')
-    imghdr.test = lambda *args: None
-    sys.modules['imghdr'] = imghdr
 
 import requests as rq,time,random,json,os,re,asyncio,hashlib,uuid
 from telethon import TelegramClient,events,Button
