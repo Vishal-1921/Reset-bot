@@ -178,7 +178,7 @@ def is_ff_protected(uid):
 async def check_rate_limit(user_id, command):
     last_time = user_last_command[user_id][command]
     
-    if (time.time() - last_time) < 15:
+    if (time.time() - last_time) < 30:
         remaining = int(15 - (time.time() - last_time))
         return False, remaining
     
@@ -217,7 +217,7 @@ def format_date(text):
         parts[0] = parts[0][1:]
     return " ".join(parts) if parts else text
 
-async def auto_delete(msg, delay=15):
+async def auto_delete(msg, delay=20):
     await asyncio.sleep(delay)
     try:
         await msg.delete()
@@ -225,7 +225,7 @@ async def auto_delete(msg, delay=15):
         pass
 
 async def delete_15sec(msg):
-    await asyncio.sleep(15)
+    await asyncio.sleep(20)
     try:
         await msg.delete()
     except:
