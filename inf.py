@@ -930,9 +930,6 @@ async def handler(event):
         elif state["type"] == "ff":
             await process_ff(event, event.text)
 
-from cfonts import render
-
-
 async def main():
     await load_admin_data()
     await load_users_data()
