@@ -1,8 +1,9 @@
+import os
+os.environ['TERM'] = 'xterm'
 import re
 import requests
 import random
 import string
-import os
 import asyncio
 import threading
 import queue
