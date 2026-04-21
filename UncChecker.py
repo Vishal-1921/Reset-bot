@@ -51,9 +51,10 @@ class GmailAvailabilityChecker:
         self.token_manager = TokenManager()
         self.session_pool = queue.Queue()
         self._init_session_pool()
-        self._create_new_token()
+        self.token_refresh_lock = threading.Lock()
+        self._create_new_token()  # Generate token once at startup
     
-    def _init_session_pool(self, pool_size=20):
+    def _init_session_pool(self, pool_size=30):  # Increased to 30 for threads
         for _ in range(pool_size):
             session = requests.Session()
             session.headers.update({
@@ -76,6 +77,7 @@ class GmailAvailabilityChecker:
             pass
     
     def _create_new_token(self):
+        """Generate a single token to be reused by all threads"""
         try:
             alphabet = 'azertyuiopmlkjhgfdsqwxcvbn'
             n1 = ''.join(random.choice(alphabet) for _ in range(random.randint(6, 9)))
@@ -123,9 +125,14 @@ class GmailAvailabilityChecker:
                     token = token_parts[1].split('"')[0]
                     host_cookie = response.cookies.get_dict().get('__Host-GAPS', host)
                     self.token_manager.set_token(token, host_cookie)
+                    print(f"✅ Token generated successfully: {token[:20]}...")
+                else:
+                    print("❌ Failed to extract token from response")
+            else:
+                print("❌ Failed to find token pattern in response")
         
         except Exception as e:
-            print(f"Token creation error: {e}")
+            print(f"❌ Token creation error: {e}")
     
     def check_availability(self, username):
         try:
@@ -136,8 +143,11 @@ class GmailAvailabilityChecker:
             
             token, host_cookie = self.token_manager.get_token()
             if not token or not host_cookie:
-                self._create_new_token()
-                token, host_cookie = self.token_manager.get_token()
+                print("⚠️ No token available, attempting to create new one...")
+                with self.token_refresh_lock:
+                    if not self.token_manager.get_token()[0]:
+                        self._create_new_token()
+                        token, host_cookie = self.token_manager.get_token()
             
             session = self._get_session()
             
@@ -225,17 +235,17 @@ class UncCheckerBot:
         
         @self.client.on(events.NewMessage(pattern='/start'))
         async def start_handler(event):
-        	from telethon.tl.types import KeyboardButtonUrl as KBUrl
-        	from telethon.tl.custom import Button
-        	buttons = [
-        	    [Button.url("Contact Me", CONTACT_LINK), Button.url("Channel", CHANNEL_LINK)]
-        	]
-        	
-        	await event.reply(
-        	    "**I'm UNC CHECKER BOT** 🚀🤖\n\n**Send Any GMAIL or Forward Gmail Hits, I'll Extract Gmail And Check 📧** ",
-        	    buttons=buttons,
-        	    file="https://raw.githubusercontent.com/HloSpidey/photo/refs/heads/main/ss.jpg"
-        	)
+            from telethon.tl.types import KeyboardButtonUrl as KBUrl
+            from telethon.tl.custom import Button
+            buttons = [
+                [Button.url("Contact Me", CONTACT_LINK), Button.url("Channel", CHANNEL_LINK)]
+            ]
+            
+            await event.reply(
+                "**I'm UNC CHECKER BOT** 🚀🤖\n\n**Send Any GMAIL or Forward Gmail Hits, I'll Extract Gmail And Check 📧** ",
+                buttons=buttons,
+                file="https://raw.githubusercontent.com/HloSpidey/photo/refs/heads/main/ss.jpg"
+            )
         
         @self.client.on(events.NewMessage)
         async def message_handler(event):
@@ -331,5 +341,6 @@ if __name__ == "__main__":
         os.execv(__file__, ['python3', __file__])
         
     os.system('clear')
-    print("Bot Is Running")
+    print("🚀 Bot Is Starting...")
+    print("📧 Using single token for all threads")
     asyncio.run(main())
