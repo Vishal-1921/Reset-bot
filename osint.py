@@ -1,4 +1,5 @@
 import os
+os.environ['TERM'] = 'xterm'
 os.system('pip install telethon')
 os.system('pip install requests')
 os.system('pip install datetime')
