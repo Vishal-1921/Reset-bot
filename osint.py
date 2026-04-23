@@ -243,7 +243,8 @@ async def process_number(event, number_text):
         }
         
         clean_json = json.dumps(result_text, indent=2, ensure_ascii=False)
-        result = f"```NUMBER  INFOㅤ📱📡\n{clean_json}\n```"
+        result = f"```NUMBER INFOㅤ📱📡\n{clean_json}\n```"
+        await wait_msg.delete()
         msg = await event.reply(result, parse_mode='markdown')
         copy_msg = await event.reply("⚠️ **This Data Will Get Deleted After 1 Minute, Copy The Data** ❗", parse_mode='markdown')
         asyncio.create_task(delete_message_later(msg, 59))
@@ -266,7 +267,7 @@ async def process_number(event, number_text):
         update_rate_limit(user_id)
         
         clean_json = json.dumps(data, indent=2, ensure_ascii=False)
-        result = f"```NUMBER  INFOㅤ📱📡\n{clean_json}\n```"
+        result = f"```NUMBER INFOㅤ📱📡\n{clean_json}\n```"
         
         await wait_msg.delete()
         msg = await event.reply(result, parse_mode='markdown')
@@ -283,14 +284,14 @@ async def process_number(event, number_text):
 client = TelegramClient('SpideyfreeOSINT_Bot', API_ID, API_HASH)
 
 # Command Handlers
-@client.on(events.NewMessage(pattern=r'^/start$', func=lambda e: e.is_private))
+@client.on(events.NewMessage(func=lambda e: e.is_private and e.text and e.text.startswith('/start')))
 async def start_command(event):
     user_id = event.sender_id
     add_user(user_id)
     is_member = await check_membership(user_id)
     await send_welcome_message(event, is_member)
 
-@client.on(events.NewMessage(pattern=r'^/num'))
+@client.on(events.NewMessage(func=lambda e: e.text and e.text.startswith('/num')))
 async def num_command(event):
     user_id = event.sender_id
     add_user(user_id)
@@ -315,7 +316,7 @@ async def num_command(event):
             await delete_user_messages(user_id)
             await event.reply(f"⏰ **User {event.sender.first_name} Timeout !** Send /num Command Again With Number", parse_mode='markdown')
 
-@client.on(events.NewMessage(pattern=r'^/protectnum'))
+@client.on(events.NewMessage(func=lambda e: e.text and e.text.startswith('/protectnum')))
 async def protectnum_command(event):
     user_id = event.sender_id
     
@@ -359,7 +360,7 @@ async def protectnum_command(event):
             del user_state[user_id]
             await delete_user_messages(user_id)
 
-@client.on(events.NewMessage(pattern=r'^/prolist'))
+@client.on(events.NewMessage(func=lambda e: e.text and e.text.startswith('/prolist')))
 async def prolist_command(event):
     user_id = event.sender_id
     
@@ -387,7 +388,7 @@ async def prolist_command(event):
         else:
             await event.reply("🔒 **No Protected Numbers Found**\nUse `/protectnum 1122334455` to protect", parse_mode='markdown')
 
-@client.on(events.NewMessage(pattern=r'^/removenum'))
+@client.on(events.NewMessage(func=lambda e: e.text and e.text.startswith('/removenum')))
 async def removenum_command(event):
     user_id = event.sender_id
     
@@ -408,7 +409,7 @@ async def removenum_command(event):
     else:
         await event.reply("❌ **Usage :** `/removenum 1122334455`", parse_mode='markdown')
 
-@client.on(events.NewMessage(pattern=r'^/gc', func=lambda e: e.sender_id == ADMIN_ID))
+@client.on(events.NewMessage(func=lambda e: e.text and e.text.startswith('/gc') and e.sender_id == ADMIN_ID))
 async def update_gc_link(event):
     global current_gc_link
     parts = event.text.split(maxsplit=1)
@@ -418,7 +419,7 @@ async def update_gc_link(event):
     else:
         await event.reply("❌ **Usage:** `/gc https://t.me/group_link`", parse_mode='markdown')
 
-@client.on(events.NewMessage(pattern=r'^/ch', func=lambda e: e.sender_id == ADMIN_ID))
+@client.on(events.NewMessage(func=lambda e: e.text and e.text.startswith('/ch') and e.sender_id == ADMIN_ID))
 async def update_ch_link(event):
     global current_ch_link
     parts = event.text.split(maxsplit=1)
@@ -428,7 +429,7 @@ async def update_ch_link(event):
     else:
         await event.reply("❌ **Usage:** `/ch https://t.me/channel_link`", parse_mode='markdown')
 
-@client.on(events.NewMessage(pattern=r'^/broadcast', func=lambda e: e.sender_id == ADMIN_ID))
+@client.on(events.NewMessage(func=lambda e: e.text and e.text.startswith('/broadcast') and e.sender_id == ADMIN_ID))
 async def broadcast_command(event):
     users = get_all_users()
     if not users:
@@ -460,7 +461,7 @@ async def broadcast_command(event):
         
         await status_msg.edit(f"📊 **Broadcast Completed**\n✅ Success: {success}\n❌ Failed: {failed}", parse_mode='markdown')
 
-@client.on(events.NewMessage(pattern=r'^/stats', func=lambda e: e.sender_id == ADMIN_ID))
+@client.on(events.NewMessage(func=lambda e: e.text and e.text.startswith('/stats') and e.sender_id == ADMIN_ID))
 async def stats_command(event):
     total_users = get_user_count()
     total_protected = sum(len(nums) for nums in protected_numbers.values())
