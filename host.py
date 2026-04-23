@@ -2,7 +2,6 @@ import os, requests, asyncio, json, re, random, string, subprocess, sys, time
 from datetime import datetime, timedelta
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from cfonts import render
 
 AID = 6
 AHS = "eb06d4abfb49dc3eeb1aeb98ae0f581e"
@@ -584,16 +583,6 @@ async def cbcmd(c,cb):
 def notify():
 	requests.get(f"https://api.telegram.org/bot{TOK}/sendMessage?chat_id={ADID}&text=I'm Activated 🚀")
 	
-def spidey_logo():
-	print('━' * 66)
-	logo = render('Spidey', font='block', colors=['white', 'black'], align='center', background='red', space=True)
-	print(logo)
-	print('━' * 66)
-	print("\033[96m                       𝗛𝗼𝘀𝘁𝗶𝗻𝗴 𝗦𝘁𝗼𝗿𝗮𝗴𝗲 𝗕𝗼𝘁 🤖         \033[0m")
-	print('━' * 66)
-	print('\n  \033[92m𝘽𝙤𝙩 𝙄𝙨 𝙍𝙪𝙣𝙣𝙞𝙣𝙜 🚀   \033[91m')
-	print('\033[?25l')
-	
 async def main():
     await app.start()
     ld()
@@ -601,6 +590,5 @@ async def main():
     await asyncio.Event().wait()
 
 if __name__ == "__main__":
-    spidey_logo()
     notify()
     app.run()
