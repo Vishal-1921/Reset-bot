@@ -1,8 +1,8 @@
 import os
 os.environ['TERM'] = 'xterm'
-os.system('pip install telethon')
-os.system('pip install requests')
-os.system('pip install datetime')
+os.system('pip install telethon==1.43.1')
+os.system('pip install requests==2.33.1')
+os.system('pip install user_agent==0.1.14')
 import requests
 import time
 import re
