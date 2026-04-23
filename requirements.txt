@@ -6,6 +6,5 @@ requests==2.31.0
 pycryptodome==3.19.0
 setuptools==68.0.0
 Cython==3.0.0
-cfonts==2.8.0
 pytz==2023.3
 aiohttp==3.8.6
