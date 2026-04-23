@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from cfonts import render
-os.environ['TERM'] = 'xterm'
 
 AID = 6
 AHS = "eb06d4abfb49dc3eeb1aeb98ae0f581e"
