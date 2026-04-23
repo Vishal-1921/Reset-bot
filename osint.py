@@ -1,4 +1,5 @@
 import os
+os.system("pip install requests telethon")
 import requests
 import time
 import re
