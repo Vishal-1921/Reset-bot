@@ -1,4 +1,7 @@
 import os
+os.system('pip install telethon')
+os.system('pip install requests')
+os.system('pip install datetime')
 import requests
 import time
 import re
