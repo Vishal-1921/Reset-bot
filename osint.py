@@ -1,9 +1,14 @@
 import os
-os.environ['TERM'] = 'xterm'
-os.system('pip install telethon')
-os.system('pip install requests')
-os.system('pip install user_agent')
-import requests
+import sys
+import warnings
+
+# Suppress deprecation warnings
+warnings.filterwarnings("ignore")
+
+# Run pip quietly if needed
+os.system('pip install --upgrade telethon requests user_agent -q --no-warn-script-location 2>/dev/null')
+
+# Now run your bot
 import time
 import re
 import asyncio
@@ -12,8 +17,6 @@ from collections import defaultdict
 from datetime import datetime
 from telethon import TelegramClient, events, Button
 from telethon.errors import FloodWaitError, ChannelPrivateError, UserNotParticipantError
-from telethon.tl.functions.channels import GetParticipantRequest
-from telethon.tl.types import ChannelParticipant, ChannelParticipant
 
 BOT_TOKEN = "8655956389:AAHITB8xDYmIPYDSa_dOVE4P6CZgfiR77ac"
 API_ID = 6
