@@ -255,7 +255,7 @@ async def process_number(event, num):
         await message.reply("❌ Error")
 
 # Initialize client
-client = TelegramClient('Sp7deyOSINT_Bot', API_ID, API_HASH)
+client = TelegramClient('Sp7deyOSINT_Bot', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
 # Command Handlers
 @client.on(events.NewMessage(pattern=r'^/start$'))
