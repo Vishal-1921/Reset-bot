@@ -1,16 +1,13 @@
 import os
 import sys
-# Fix for hosting environment issues
 os.environ['TERM'] = 'xterm'
 os.environ['LANG'] = 'C.UTF-8'
 os.environ['LC_ALL'] = 'C.UTF-8'
 os.environ['PYTHONUNBUFFERED'] = '1'
 
-# Force stdout/stderr to be unbuffered
 sys.stdout.reconfigure(line_buffering=True)
 sys.stderr.reconfigure(line_buffering=True)
 
-# Now rest of imports
 import requests
 import time
 import re
@@ -33,7 +30,6 @@ STORAGE_CHANNEL = -1003666940027
 USERS_LIST_MSG_ID = 30
 NUM_API = "https://hlospidey-7.vercel.app/api/number?num={}"
 
-# Updated verification channels
 VERIFY_CHANNEL_1 = -1002744702466
 VERIFY_CHANNEL_2 = -1003425131774
 
@@ -43,7 +39,6 @@ DEFAULT_CH_LINK = "https://t.me/spideystuff"
 current_gc_link = DEFAULT_GC_LINK
 current_ch_link = DEFAULT_CH_LINK
 
-# Data structures
 user_state = {}
 user_last_command = defaultdict(float)
 user_invalid_attempts = defaultdict(int)
@@ -55,7 +50,6 @@ cooldown_active = False
 cooldown_users = set()
 users_list = set()
 
-# Broadcast variables
 broadcast_active = False
 broadcast_messages = []
 broadcast_status_msg = None
@@ -218,7 +212,6 @@ async def process_number(event, num):
     client = event.client
     message = event
     try:
-        # Increment request count for stats
         increment_request_count()
         
         msg = await message.reply("🔍 Fetching data...")
@@ -266,10 +259,8 @@ async def process_number(event, num):
         print(f"Error in process_number: {traceback.format_exc()}")
         await message.reply("❌ Error")
 
-# Initialize client
 client = TelegramClient('Sp7deyyyyyOSINT_Bot', API_ID, API_HASH)
 
-# Command Handlers
 @client.on(events.NewMessage(pattern=r'^/start$'))
 async def start_command(event):
     user_id = event.sender_id
@@ -437,7 +428,6 @@ async def update_ch_link(event):
     else:
         await event.reply("❌ **Usage:** `/ch https://t.me/channel_link`", parse_mode='markdown')
 
-# Broadcast System
 @client.on(events.NewMessage(pattern=r'^/broadcast$', func=lambda e: e.sender_id == ADMIN_ID))
 async def broadcast_command(event):
     global broadcast_active, broadcast_messages, broadcast_status_msg
@@ -645,7 +635,6 @@ async def callback_handler(event):
         else:
             await event.answer("❌ Please Join Both Channels First!", alert=True)
 
-# Only respond to non-command messages when waiting for input
 @client.on(events.NewMessage(func=lambda e: not e.text.startswith('/') if e.text else False))
 async def private_text_handler(event):
     user_id = event.sender_id
@@ -679,7 +668,6 @@ async def private_text_handler(event):
         await protectnum_command(event)
 
 async def notify_admin_startup():
-    """Send activation message to admin when bot starts"""
     try:
         await client.send_message(
             ADMIN_ID,
@@ -689,22 +677,24 @@ async def notify_admin_startup():
         print("Admin notified: Bot Activated ⚡", flush=True)
     except Exception as e:
         print(f"Could not notify admin: {e}", flush=True)
-        
+
 async def main():
     try:
         await client.start(bot_token=BOT_TOKEN)
         await load_users_list()
         me = await client.get_me()
         print(f"Bot Started Successfully! @{me.username}", flush=True)
-        
-        # Notify admin
         await notify_admin_startup()
-        
         await client.run_until_disconnected()
     except Exception as e:
         print(f"Fatal error: {e}", flush=True)
         traceback.print_exc()
-        await asyncio.sleep(300)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("Bot stopped by user", flush=True)
+    except Exception as e:
+        print(f"Startup error: {e}", flush=True)
+        traceback.print_exc()
