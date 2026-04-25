@@ -1,5 +1,7 @@
 import os
 os.environ['TERM'] = 'xterm'
+os.system('pip install requests')
+os.system('pip install telethon')
 import requests
 import time
 import re
