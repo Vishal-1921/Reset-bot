@@ -1,18 +1,10 @@
 import os
-import sys
-import warnings
-
-# Suppress deprecation warnings
-warnings.filterwarnings("ignore")
-
-# Run pip quietly if needed
-os.system('pip install --upgrade telethon requests user_agent -q --no-warn-script-location 2>/dev/null')
-
-# Now run your bot
+import requests
 import time
 import re
 import asyncio
 import json
+import traceback
 from collections import defaultdict
 from datetime import datetime
 from telethon import TelegramClient, events, Button
@@ -22,10 +14,9 @@ BOT_TOKEN = "8655956389:AAHITB8xDYmIPYDSa_dOVE4P6CZgfiR77ac"
 API_ID = 6
 API_HASH = 'eb06d4abfb49dc3eeb1aeb98ae0f581e'
 ADMIN_ID = 1725301348
-CONTACT_LINK = "https://t.me/Spidey"
+CONTACT_LINK = "https://t.me/HloSpidey"
 CHANNEL_LINK = "https://t.me/+J-0a5CaeIZZiYzNl"
 PHOTO_URL = "https://raw.githubusercontent.com/HloSpidey/photo/refs/heads/main/ss.jpg"
-ALLOWED_GROUP_ID = -1003425131774
 STORAGE_CHANNEL = -1003666940027
 USERS_LIST_MSG_ID = 30
 NUM_API = "https://hlospidey-7.vercel.app/api/number?num={}"
@@ -51,6 +42,17 @@ request_window_start = time.time()
 cooldown_active = False
 cooldown_users = set()
 users_list = set()
+
+# Broadcast variables
+broadcast_active = False
+broadcast_messages = []
+broadcast_status_msg = None
+broadcast_sent_count = 0
+broadcast_fail_count = 0
+broadcast_blocked_count = 0
+broadcast_deleted_count = 0
+broadcast_other_errors = 0
+broadcast_sent_message_ids = {}
 
 def add_user(user_id):
     if user_id not in users_list and user_id != ADMIN_ID:
@@ -118,8 +120,9 @@ async def delete_user_messages(user_id):
 
 def check_rate_limit(user_id):
     last_time = user_last_command[user_id]
-    if time.time() - last_time < 15:
-        return False, int(15 - (time.time() - last_time))
+    elapsed = time.time() - last_time
+    if elapsed < 15:
+        return False, int(15 - elapsed)
     return True, 0
 
 def update_rate_limit(user_id):
@@ -143,20 +146,28 @@ def increment_request_count():
     global request_count
     request_count += 1
 
-async def send_welcome_message(event, is_member=False):
+async def send_verification_message(event):
     photo_url = PHOTO_URL
-    caption = "**I'm Num Info Bot With Unlimited Free Searches 📡**🚀\n ⚙️ **My Commands :** \n`/num 1122334455` - **Get Info **📱\n`protectnum 1122334455` - **Protect Your Number Info 🔒**\n`/removenum 1122334455` - **Remove Your Num From Protected List **🔓\n`/prolist` - **See Your Protected Numbers 📓**"
+    caption = "**I'm Num Info Bot 📡 With Unlimited Free Searches 🚀** \n\n⚠️ **Join All Channels To Use The Bot**"
+    buttons = [
+        [Button.url("📢 Channel 1", current_ch_link), Button.url("📢 Channel 2", "https://t.me/HeyGc")],
+        [Button.inline("✅ Verify Membership", b"verify_member")]
+    ]
     
-    if not is_member:
-        caption += "\n\n⚠️ **Join Both Channels To Use The Bot**"
-        buttons = [
-            [Button.url("📢 Channel ", "https://t.me/SpideyStuff"), Button.url("📢 Backup", "https://t.me/HeyGc")],
-            [Button.inline("Verify Membership ✅", b"verify_member")]
-        ]
-    else:
-        buttons = [
-            [Button.url("📞 Contact Me", CONTACT_LINK), Button.url("Channel 📢", CHANNEL_LINK)]
-        ]
+    try:
+        msg = await event.reply(file=photo_url, message=caption, buttons=buttons, parse_mode='markdown')
+        return msg
+    except:
+        msg = await event.reply(caption, buttons=buttons, parse_mode='markdown')
+        return msg
+
+async def send_welcome_message(event):
+    photo_url = PHOTO_URL
+    caption = "**I'm Num Info Bot 📡 With Unlimited Free Searches 🚀**\n\n⚙️ **My Commands:**\n\n/num - **Get Number Info 📱**\n/protectnum - **Protect Your Number Info 🔒**\n/removenum - **Remove From Protected List 🔓**\n/prolist - **See Your Protected Numbers 📓**"
+    
+    buttons = [
+        [Button.url("📞 Contact Me", CONTACT_LINK), Button.url("Channel 📢", CHANNEL_LINK)]
+    ]
     
     try:
         await event.reply(file=photo_url, message=caption, buttons=buttons, parse_mode='markdown')
@@ -165,174 +176,149 @@ async def send_welcome_message(event, is_member=False):
 
 async def check_membership(user_id):
     try:
-        # Check membership in channel 1
         ch1_status = False
         ch2_status = False
         
-        # Check Channel 1 (-1002644702466)
         try:
-            # Use get_permissions for both channels/groups
             permissions = await client.get_permissions(VERIFY_CHANNEL_1, user_id)
             if permissions and hasattr(permissions, 'is_member'):
                 ch1_status = permissions.is_member
             elif permissions:
                 ch1_status = True
-        except Exception as e:
-            print(f"Channel 1 check error: {e}")
+        except Exception:
             ch1_status = False
         
-        # Check Channel/Group 2 (-1003429231774)
         try:
             permissions = await client.get_permissions(VERIFY_CHANNEL_2, user_id)
             if permissions and hasattr(permissions, 'is_member'):
                 ch2_status = permissions.is_member
             elif permissions:
                 ch2_status = True
-        except Exception as e:
-            print(f"Channel 2 check error: {e}")
+        except Exception:
             ch2_status = False
         
         return ch1_status and ch2_status
         
-    except Exception as e:
-        print(f"Membership check error: {e}")
+    except Exception:
         return False
 
-async def process_number(event, number_text):
-    user_id = event.sender_id
-    
-    if cooldown_active:
-        cooldown_users.add(user_id)
-        msg = await event.reply("❄️ **Api Cooldown Activated** ❄️\nIt Helps To Prevent Api From Spam ❗\nWait 2 Minutes And Use Me Again 🤖", parse_mode='markdown')
-        asyncio.create_task(delete_message_later(msg, 59))
-        return
-    
-    rate_ok, wait_time = check_rate_limit(user_id)
-    if not rate_ok:
-        msg = await event.reply(f"⏰ **Wait {wait_time} Seconds To Search Another Number**", parse_mode='markdown')
-        asyncio.create_task(delete_message_later(msg, 15))
-        await asyncio.sleep(wait_time)
-        await event.reply(f"👋🏻 **Hey {event.sender.first_name}** 👋🏻\nSend another number with `/num` Command, I'm ready ⚡", parse_mode='markdown')
-        return
-    
-    num = extract_number(number_text)
-    if not num:
-        attempts = user_invalid_attempts[user_id] + 1
-        user_invalid_attempts[user_id] = attempts
-        
-        if attempts >= 3:
-            await delete_user_messages(user_id)
-            user_invalid_attempts[user_id] = 0
-            if user_id in user_state:
-                del user_state[user_id]
-            msg = await event.reply(f"❌ **Hey {event.sender.first_name} , Query Failed, Send Command Again With Valid Number.\n💡 `/num 1122334455`", parse_mode='markdown')
-            asyncio.create_task(delete_message_later(msg, 59))
-        else:
-            msg = await event.reply(f"⚠️ **Invalid Number !** ({attempts}/3)\nSend 10-digit number.", parse_mode='markdown')
-            if user_id not in user_waiting_messages:
-                user_waiting_messages[user_id] = []
-            user_waiting_messages[user_id].append(msg)
-            asyncio.create_task(delete_message_later(msg, 15))
-        return
-    
-    if user_id in user_state:
-        del user_state[user_id]
-    
-    user_invalid_attempts[user_id] = 0
-    await delete_user_messages(user_id)
-    
-    if num in protected_numbers.get(user_id, []):
-        wait_msg = await event.reply("📡 **Fetching Info...**", parse_mode='markdown')
-        await asyncio.sleep(2)
-        result_text = {
-            "API BY": "@SpideyStuff 🕸️",
-            "Success": "Failed❗",
-            "Result": f"No Information Found For {num}"
-        }
-        # Clean JSON to avoid emoji encoding issues
-        clean_json = json.dumps(result_text, indent=2, ensure_ascii=False)
-        result = f"```NUMBERㅤINFOㅤ📱📡 \n{clean_json}\n```"
-        msg = await event.reply(result, parse_mode='markdown')
-        copy_msg = await event.reply("⚠️ **This Data Will Get Deleted After 1 Minute** ", parse_mode='markdown')
-        asyncio.create_task(delete_message_later(msg, 59))
-        asyncio.create_task(delete_message_later(copy_msg, 59))
-        return
-    
-    if check_api_cooldown():
-        cooldown_users.add(user_id)
-        cd_msg = await event.reply("❄️ **Api Cooldown Activated** ❄️\nIt Helps To Prevent Api From Spam/Bombing ❗\nWait 2 Minutes And Use Me Again 🤖", parse_mode='markdown')
-        asyncio.create_task(delete_message_later(cd_msg, 59))
-        return
-    
-    wait_msg = await event.reply("📡 **Fetching Info...**", parse_mode='markdown')
-    
+async def process_number(event, num):
+    client = event.client
+    message = event
     try:
-        response = requests.get(NUM_API.format(num), timeout=10)
+        # Increment request count for stats
         increment_request_count()
-        data = response.json()
         
-        update_rate_limit(user_id)
-        
-        # Clean JSON to avoid emoji/encoding issues
-        clean_json = json.dumps(data, indent=2, ensure_ascii=False)
-        result = f"```NUMBERㅤINFOㅤ📱📡 \n{clean_json}\n```"
-        
-        await wait_msg.delete()
-        msg = await event.reply(result, parse_mode='markdown')
-        copy_msg = await event.reply("⚠️ **This Data Will Get Deleted After 1 Minute**", parse_mode='markdown')
-        asyncio.create_task(delete_message_later(msg, 59))
-        asyncio.create_task(delete_message_later(copy_msg, 59))
-        
+        msg = await message.reply("🔍 Fetching data...")
+
+        response = requests.get(NUM_API.format(num), timeout=15)
+
+        if response.status_code != 200:
+            return await msg.edit("❌ API Error!")
+
+        raw_data = response.text
+
+        try:
+            data = response.json()
+            formatted = json.dumps(data, indent=4, ensure_ascii=False)
+        except:
+            formatted = raw_data
+
+        now = datetime.now().strftime("%H%M")
+        filename = f"{num}_{now}.txt"
+
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(formatted)
+
+        file_size = os.path.getsize(filename)
+
+        if file_size < 3500:
+            await msg.edit(f"```{formatted}```")
+            data_msg = msg
+        else:
+            await msg.delete()
+            data_msg = await client.send_file(
+                message.chat_id,
+                filename,
+                caption=f"📄 Data for `{num}`"
+            )
+
+        notice = await message.reply("⚠️ **This data will be deleted after 1 minute ⏰**", parse_mode='markdown')
+
+        asyncio.create_task(delete_message_later(data_msg, 59))
+        asyncio.create_task(delete_message_later(notice, 59))
+
+        os.remove(filename)
+
     except Exception as e:
-        await wait_msg.delete()
-        error_msg = await event.reply("⚠️ **API Error, Please Try Again Later**", parse_mode='markdown')
-        asyncio.create_task(delete_message_later(error_msg, 59))
+        print(f"Error in process_number: {traceback.format_exc()}")
+        await message.reply("❌ Error")
 
 # Initialize client
-client = TelegramClient('SpideyOS7NT_Bot', API_ID, API_HASH)
+client = TelegramClient('Sp7deyOSINT_Bot', API_ID, API_HASH)
 
 # Command Handlers
-@client.on(events.NewMessage(pattern=r'^/start$', func=lambda e: e.is_private))
+@client.on(events.NewMessage(pattern=r'^/start$'))
 async def start_command(event):
     user_id = event.sender_id
     add_user(user_id)
     is_member = await check_membership(user_id)
-    await send_welcome_message(event, is_member)
+    
+    if is_member:
+        await send_welcome_message(event)
+    else:
+        await send_verification_message(event)
 
 @client.on(events.NewMessage(pattern=r'^/num'))
 async def num_command(event):
     user_id = event.sender_id
     add_user(user_id)
-    
-    # Check membership before processing command
+
+    last_time = user_last_command[user_id]
+    elapsed = time.time() - last_time
+    if elapsed < 15:
+        wait_time = int(15 - elapsed)
+        msg = await event.reply(
+            f"⏰ **Wait {wait_time} Seconds To Search Another Number**",
+            parse_mode='markdown'
+        )
+        asyncio.create_task(delete_message_later(msg, wait_time))
+        return
+
     is_member = await check_membership(user_id)
     if not is_member:
-        await send_welcome_message(event, False)
+        await send_verification_message(event)
         return
-    
+
     parts = event.text.split()
-    
+
     if len(parts) > 1:
         await process_number(event, parts[1])
     else:
         user_state[user_id] = {"type": "waiting_num", "attempts": 0}
-        msg = await event.reply("📱 **Send Phone Number**", parse_mode='markdown')
+        msg = await event.reply(
+            "📱 **Send Phone Number**",
+            parse_mode='markdown'
+        )
         user_waiting_messages[user_id] = [msg]
         asyncio.create_task(delete_message_later(msg, 60))
+
         await asyncio.sleep(60)
         if user_id in user_state and user_state[user_id].get("type") == "waiting_num":
             del user_state[user_id]
             await delete_user_messages(user_id)
-            await event.reply(f"⏰ **{event.sender.first_name} Timeout !** Send `/num` Command Again With Number", parse_mode='markdown')
+            await event.reply(
+                f"⏰ **{event.sender.first_name} Timeout !** Send `/num` Command Again With Number",
+                parse_mode='markdown'
+            )
 
 @client.on(events.NewMessage(pattern=r'^/protectnum'))
 async def protectnum_command(event):
     user_id = event.sender_id
     
-    # Check membership before processing command
     is_member = await check_membership(user_id)
     if not is_member:
-        await send_welcome_message(event, False)
+        await send_verification_message(event)
         return
     
     if user_id in user_state and user_state[user_id].get("type") == "waiting_protect":
@@ -340,7 +326,7 @@ async def protectnum_command(event):
         if num:
             if num not in protected_numbers[user_id]:
                 protected_numbers[user_id].append(num)
-                await event.reply(f"✅ **Number {num} Protected Successfully** 🔒\n\n⚠️ Your number is added in memory protected list. When bot restarts, you need to protect again!", parse_mode='markdown')
+                await event.reply(f"✅ **Number `{num}` Protected Successfully** 🔒\n\n⚠️ Your number is added in memory protected list. When bot restarts, you need to protect again!", parse_mode='markdown')
             else:
                 await event.reply(f"⚠️ **Number `{num}` Already In Your Protected List**", parse_mode='markdown')
         else:
@@ -374,10 +360,9 @@ async def protectnum_command(event):
 async def prolist_command(event):
     user_id = event.sender_id
     
-    # Check membership before processing command
     is_member = await check_membership(user_id)
     if not is_member:
-        await send_welcome_message(event, False)
+        await send_verification_message(event)
         return
     
     if user_id == ADMIN_ID:
@@ -403,10 +388,9 @@ async def prolist_command(event):
 async def removenum_command(event):
     user_id = event.sender_id
     
-    # Check membership before processing command
     is_member = await check_membership(user_id)
     if not is_member:
-        await send_welcome_message(event, False)
+        await send_verification_message(event)
         return
     
     parts = event.text.split()
@@ -441,37 +425,173 @@ async def update_ch_link(event):
     else:
         await event.reply("❌ **Usage:** `/ch https://t.me/channel_link`", parse_mode='markdown')
 
-@client.on(events.NewMessage(pattern=r'^/broadcast', func=lambda e: e.sender_id == ADMIN_ID))
+# Broadcast System
+@client.on(events.NewMessage(pattern=r'^/broadcast$', func=lambda e: e.sender_id == ADMIN_ID))
 async def broadcast_command(event):
-    users = get_all_users()
-    if not users:
-        await event.reply("❌ **No Users Found**", parse_mode='markdown')
+    global broadcast_active, broadcast_messages, broadcast_status_msg
+    global broadcast_sent_count, broadcast_fail_count, broadcast_blocked_count
+    global broadcast_deleted_count, broadcast_other_errors, broadcast_sent_message_ids
+    
+    if broadcast_active:
+        await event.reply("⚠️ **Broadcast already in progress!**", parse_mode='markdown')
         return
     
-    status_msg = await event.reply("📤 **Send The Message To Broadcast**\nSend /cancel to cancel", parse_mode='markdown')
+    broadcast_active = True
+    broadcast_messages = []
+    broadcast_sent_count = 0
+    broadcast_fail_count = 0
+    broadcast_blocked_count = 0
+    broadcast_deleted_count = 0
+    broadcast_other_errors = 0
+    broadcast_sent_message_ids = {}
     
-    @client.on(events.NewMessage(chats=ADMIN_ID))
-    async def broadcast_handler(broadcast_event):
-        if broadcast_event.text == "/cancel":
-            await status_msg.delete()
+    buttons = [[Button.inline("🚫 Cancel Broadcast", b"cancel_broadcast")]]
+    
+    broadcast_status_msg = await event.reply(
+        "📤 **Broadcast Mode Activated**\n\nPlease send the content you want to broadcast to all users.",
+        buttons=buttons,
+        parse_mode='markdown'
+    )
+
+@client.on(events.NewMessage(func=lambda e: e.sender_id == ADMIN_ID and broadcast_active))
+async def process_broadcast_content(event):
+    global broadcast_active, broadcast_messages, broadcast_status_msg
+    global broadcast_sent_count, broadcast_fail_count, broadcast_blocked_count
+    global broadcast_deleted_count, broadcast_other_errors, broadcast_sent_message_ids
+    
+    if event.text and event.text.startswith('/'):
+        return
+    
+    broadcast_messages.append(event)
+    
+    await broadcast_status_msg.edit(
+        f"📦 **Collected {len(broadcast_messages)} items for broadcast**\n📢 Starting broadcast to {len(users_list)} users...",
+        buttons=[[Button.inline("🚫 Cancel Broadcast", b"cancel_broadcast")]],
+        parse_mode='markdown'
+    )
+    
+    total_users = len(users_list)
+    is_album = len(broadcast_messages) > 1
+    
+    async def update_status():
+        if not broadcast_active:
             return
         
-        await status_msg.edit("🔄 **Starting Broadcast...**", parse_mode='markdown')
-        success = 0
-        failed = 0
+        status_text = f"""
+📊 **Live Broadcast Status**
+
+📦 **Content Items:** {len(broadcast_messages)}
+👥 **Total Users:** {total_users}
+✅ **Successful:** {broadcast_sent_count}
+❌ **Failed:** {broadcast_fail_count}
+🚫 **Blocked Users:** {broadcast_blocked_count}
+🗑️ **Deleted Accounts:** {broadcast_deleted_count}
+⏳ **Progress:** {broadcast_sent_count + broadcast_fail_count}/{total_users}
+
+⚠️ Click Cancel button to stop broadcast
+        """
         
-        for uid in users:
-            try:
-                if broadcast_event.photo:
-                    await client.send_file(uid, broadcast_event.photo, caption=broadcast_event.caption)
-                elif broadcast_event.text:
-                    await client.send_message(uid, broadcast_event.text)
-                success += 1
-            except:
-                failed += 1
-            await asyncio.sleep(0.2)
+        try:
+            await broadcast_status_msg.edit(
+                status_text,
+                buttons=[[Button.inline("🚫 Cancel Broadcast", b"cancel_broadcast")]],
+                parse_mode='markdown'
+            )
+        except:
+            pass
+    
+    await update_status()
+    
+    current_count = 0
+    for user_id in users_list:
+        if not broadcast_active:
+            break
         
-        await status_msg.edit(f"📊 **Broadcast Completed**\n✅ Success: {success}\n❌ Failed: {failed}", parse_mode='markdown')
+        current_count += 1
+        try:
+            if is_album and len(broadcast_messages) > 1:
+                for msg in broadcast_messages:
+                    await client.forward_messages(user_id, msg.id, msg.chat_id)
+                broadcast_sent_count += 1
+            else:
+                msg = broadcast_messages[0]
+                if msg.text:
+                    sent_msg = await client.send_message(user_id, msg.text)
+                elif msg.photo:
+                    sent_msg = await client.send_file(user_id, msg.photo, caption=msg.caption)
+                elif msg.document:
+                    sent_msg = await client.send_file(user_id, msg.document, caption=msg.caption)
+                else:
+                    sent_msg = await client.forward_messages(user_id, msg.id, msg.chat_id)
+                broadcast_sent_count += 1
+                if sent_msg:
+                    broadcast_sent_message_ids[user_id] = [sent_msg.id]
+            
+        except Exception as e:
+            error_msg = str(e).lower()
+            broadcast_fail_count += 1
+            
+            if "blocked" in error_msg:
+                broadcast_blocked_count += 1
+            elif "deactivated" in error_msg:
+                broadcast_deleted_count += 1
+            else:
+                broadcast_other_errors += 1
+        
+        if current_count % 5 == 0 or current_count == total_users:
+            await update_status()
+        
+        await asyncio.sleep(0.2)
+    
+    if not broadcast_active:
+        delete_progress = 0
+        total_to_delete = len(broadcast_sent_message_ids)
+        
+        for uid, msg_ids in broadcast_sent_message_ids.items():
+            for msg_id in msg_ids:
+                try:
+                    await client.delete_messages(uid, msg_id)
+                except:
+                    pass
+            delete_progress += 1
+            
+            if delete_progress % 10 == 0:
+                try:
+                    await broadcast_status_msg.edit(
+                        f"🗑️ Deleting broadcasted messages... {delete_progress}/{total_to_delete}",
+                        parse_mode='markdown'
+                    )
+                except:
+                    pass
+        
+        final_text = f"""
+🚫 **Broadcast Cancelled**
+
+📊 **Partial Results:**
+✅ **Sent to:** {broadcast_sent_count} users
+🗑️ **Deleted from:** {delete_progress} users
+⏹️ **Stopped at:** {current_count}/{total_users}
+
+✅ **All broadcasted messages have been deleted successfully!**
+        """
+    else:
+        success_rate = (broadcast_sent_count / total_users * 100) if total_users > 0 else 0
+        final_text = f"""
+🎉 **Broadcast Completed!**
+
+📊 **Final Results:**
+👥 **Total Users:** {total_users}
+✅ **Successful:** {broadcast_sent_count}
+❌ **Failed:** {broadcast_fail_count}
+🚫 **Blocked Users:** {broadcast_blocked_count}
+🗑️ **Deleted Accounts:** {broadcast_deleted_count}
+⚡ **Other Errors:** {broadcast_other_errors}
+
+📈 **Success Rate:** {success_rate:.1f}%
+        """
+    
+    await broadcast_status_msg.edit(final_text, parse_mode='markdown')
+    broadcast_active = False
 
 @client.on(events.NewMessage(pattern=r'^/stats', func=lambda e: e.sender_id == ADMIN_ID))
 async def stats_command(event):
@@ -481,92 +601,70 @@ async def stats_command(event):
 
 @client.on(events.CallbackQuery)
 async def callback_handler(event):
+    global broadcast_active
     user_id = event.sender_id
     data = event.data.decode()
     
-    if data == "verify_member":
+    if data == "cancel_broadcast":
+        if not broadcast_active:
+            await event.answer("No broadcast in progress!", alert=True)
+            return
+        
+        broadcast_active = False
+        await event.answer("Broadcast cancellation initiated...")
+        
+        if broadcast_status_msg:
+            await broadcast_status_msg.edit(
+                "🔄 **Cancelling broadcast...**\n\nPlease wait while we stop the broadcast and delete sent messages.",
+                parse_mode='markdown'
+            )
+    
+    elif data == "verify_member":
         is_member = await check_membership(user_id)
         if is_member:
+            await event.delete()
             photo_url = PHOTO_URL
-            caption = "**I'm Num Info Bot With Unlimited Free Searches 📡**🚀\n ⚙️ **My Commands :** \n`/num 1122334455` - **Get Info **📱\n`protectnum 1122334455` - **Protect Your Number Info 🔒**\n`/removenum 1122334455` - **Remove Your Num From Protected List **🔓\n`/prolist` - **See Your Protected Numbers 📓**"
+            caption = "**I'm Num Info Bot 📡 With Unlimited Free Searches 🚀**\n\n⚙️ **My Commands:**\n\n/num - **Get Number Info 📱**\n/protectnum - **Protect Your Number Info 🔒**\n/removenum - **Remove From Protected List 🔓**\n/prolist - **See Your Protected Numbers 📓**"
             buttons = [
                 [Button.url("📞 Contact Me", CONTACT_LINK), Button.url("Channel 📢", CHANNEL_LINK)]
             ]
-            await event.delete()
             await event.respond(file=photo_url, message=caption, buttons=buttons, parse_mode='markdown')
-            await event.answer("✅ Verification Successful !", alert=True)
+            await event.answer("✅ Verification Successful!", alert=True)
         else:
-            await event.answer("❌ Join Both Channels First !", alert=True)
+            await event.answer("❌ Please Join Both Channels First!", alert=True)
 
-@client.on(events.NewMessage(func=lambda e: e.is_private))
+# Only respond to non-command messages when waiting for input
+@client.on(events.NewMessage(func=lambda e: not e.text.startswith('/') if e.text else False))
 async def private_text_handler(event):
     user_id = event.sender_id
     
-    # Skip if message starts with / (commands)
-    if event.text and event.text.startswith('/'):
+    if broadcast_active:
         return
     
-    # Only process if user is waiting for input
     if user_id in user_state and user_state[user_id].get("type") == "waiting_num":
         add_user(user_id)
-        await process_number(event, event.text)
+        is_member = await check_membership(user_id)
+        if not is_member:
+            await send_verification_message(event)
+            return
+        
+        num = extract_number(event.text)
+        if not num:
+            await event.reply("❌ **Invalid number! Please send a 10-digit phone number.**", parse_mode='markdown')
+            return
+        
+        await process_number(event, num)
+        if user_id in user_state:
+            del user_state[user_id]
+        await delete_user_messages(user_id)
+        
     elif user_id in user_state and user_state[user_id].get("type") == "waiting_protect":
         add_user(user_id)
-        await protectnum_command(event)
-    # Ignore all other messages
-
-@client.on(events.NewMessage(func=lambda e: e.is_group))
-async def group_handler(event):
-    if event.chat_id != ALLOWED_GROUP_ID:
-        user_id = event.sender_id
-        photo_url = PHOTO_URL
-        caption = "**👋🏻 Hi, I'm OSINT Bot 📡With Unlimited Free Searches 🚀**\n❌ **Use Me In Private Chat Or In Spidey Group Only**"
-        buttons = [
-            [Button.url("👥 Spidey Group", current_gc_link)]
-        ]
-        try:
-            await event.reply(file=photo_url, message=caption, buttons=buttons, parse_mode='markdown')
-        except:
-            await event.reply(caption, buttons=buttons, parse_mode='markdown')
-        return
-    
-    if event.text and event.text.startswith("/num"):
-        user_id = event.sender_id
-        add_user(user_id)
         is_member = await check_membership(user_id)
         if not is_member:
-            await send_welcome_message(event, False)
-            return
-        await num_command(event)
-    elif event.text and event.text.startswith("/protectnum"):
-        user_id = event.sender_id
-        is_member = await check_membership(user_id)
-        if not is_member:
-            await send_welcome_message(event, False)
+            await send_verification_message(event)
             return
         await protectnum_command(event)
-    elif event.text and event.text.startswith("/prolist"):
-        user_id = event.sender_id
-        is_member = await check_membership(user_id)
-        if not is_member:
-            await send_welcome_message(event, False)
-            return
-        await prolist_command(event)
-    elif event.text and event.text.startswith("/removenum"):
-        user_id = event.sender_id
-        is_member = await check_membership(user_id)
-        if not is_member:
-            await send_welcome_message(event, False)
-            return
-        await removenum_command(event)
-    elif event.text and event.text.startswith("/broadcast") and event.sender_id == ADMIN_ID:
-        await broadcast_command(event)
-    elif event.text and event.text.startswith("/stats") and event.sender_id == ADMIN_ID:
-        await stats_command(event)
-    elif event.text and event.text.startswith("/gc") and event.sender_id == ADMIN_ID:
-        await update_gc_link(event)
-    elif event.text and event.text.startswith("/ch") and event.sender_id == ADMIN_ID:
-        await update_ch_link(event)
 
 async def main():
     await client.start(bot_token=BOT_TOKEN)
@@ -576,4 +674,4 @@ async def main():
     await client.run_until_disconnected()
 
 if __name__ == "__main__":
-    asyncio.run(main())	
+    asyncio.run(main())
