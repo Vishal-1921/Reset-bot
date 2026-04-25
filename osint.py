@@ -1,4 +1,5 @@
 import os
+os.environ['TERM'] = 'xterm'
 import requests
 import time
 import re
