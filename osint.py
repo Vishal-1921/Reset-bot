@@ -1,7 +1,16 @@
 import os
+import sys
+# Fix for hosting environment issues
 os.environ['TERM'] = 'xterm'
-os.system('pip install requests')
-os.system('pip install telethon')
+os.environ['LANG'] = 'C.UTF-8'
+os.environ['LC_ALL'] = 'C.UTF-8'
+os.environ['PYTHONUNBUFFERED'] = '1'
+
+# Force stdout/stderr to be unbuffered
+sys.stdout.reconfigure(line_buffering=True)
+sys.stderr.reconfigure(line_buffering=True)
+
+# Now rest of imports
 import requests
 import time
 import re
@@ -258,7 +267,7 @@ async def process_number(event, num):
         await message.reply("❌ Error")
 
 # Initialize client
-client = TelegramClient('Sp7deyOSINT_Bot', API_ID, API_HASH)
+client = TelegramClient('Sp7deyyyyyOSINT_Bot', API_ID, API_HASH)
 
 # Command Handlers
 @client.on(events.NewMessage(pattern=r'^/start$'))
@@ -669,12 +678,33 @@ async def private_text_handler(event):
             return
         await protectnum_command(event)
 
+async def notify_admin_startup():
+    """Send activation message to admin when bot starts"""
+    try:
+        await client.send_message(
+            ADMIN_ID,
+            "⚡ **I'm Activated** ⚡\n\n✅ Bot is now running and ready to use!",
+            parse_mode='markdown'
+        )
+        print("Admin notified: Bot Activated ⚡", flush=True)
+    except Exception as e:
+        print(f"Could not notify admin: {e}", flush=True)
+        
 async def main():
-    await client.start(bot_token=BOT_TOKEN)
-    await load_users_list()
-    me = await client.get_me()
-    print(f"Bot Started Successfully! @{me.username}")
-    await client.run_until_disconnected()
+    try:
+        await client.start(bot_token=BOT_TOKEN)
+        await load_users_list()
+        me = await client.get_me()
+        print(f"Bot Started Successfully! @{me.username}", flush=True)
+        
+        # Notify admin
+        await notify_admin_startup()
+        
+        await client.run_until_disconnected()
+    except Exception as e:
+        print(f"Fatal error: {e}", flush=True)
+        traceback.print_exc()
+        await asyncio.sleep(300)
 
 if __name__ == "__main__":
     asyncio.run(main())
