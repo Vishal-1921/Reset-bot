@@ -1,13 +1,6 @@
 import os
 import sys
 os.environ['TERM'] = 'xterm'
-os.environ['LANG'] = 'C.UTF-8'
-os.environ['LC_ALL'] = 'C.UTF-8'
-os.environ['PYTHONUNBUFFERED'] = '1'
-
-sys.stdout.reconfigure(line_buffering=True)
-sys.stderr.reconfigure(line_buffering=True)
-
 import requests
 import time
 import re
@@ -259,8 +252,11 @@ async def process_number(event, num):
         print(f"Error in process_number: {traceback.format_exc()}")
         await message.reply("❌ Error")
 
-client = TelegramClient('Sp7deyyyyyOSINT_Bot', API_ID, API_HASH)
-
+client = TelegramClient('SpideyosintttBot', API_ID, API_HASH,
+    connection_retries=10,
+    retry_delay=5,
+    auto_reconnect=True
+                       )
 @client.on(events.NewMessage(pattern=r'^/start$'))
 async def start_command(event):
     user_id = event.sender_id
@@ -679,16 +675,18 @@ async def notify_admin_startup():
         print(f"Could not notify admin: {e}", flush=True)
 
 async def main():
-    try:
-        await client.start(bot_token=BOT_TOKEN)
-        await load_users_list()
-        me = await client.get_me()
-        print(f"Bot Started Successfully! @{me.username}", flush=True)
-        await notify_admin_startup()
-        await client.run_until_disconnected()
-    except Exception as e:
-        print(f"Fatal error: {e}", flush=True)
-        traceback.print_exc()
+    while True:
+        try:
+            await client.start(bot_token=BOT_TOKEN)
+            await load_users_list()
+            me = await client.get_me()
+            print(f"Bot Started Successfully! @{me.username}", flush=True)
+            await notify_admin_startup()
+            await client.run_until_disconnected()
+        except Exception as e:
+            print(f"Connection lost: {e}", flush=True)
+            print("Reconnecting in 10 seconds...", flush=True)
+            await asyncio.sleep(10)
 
 if __name__ == "__main__":
     try:
