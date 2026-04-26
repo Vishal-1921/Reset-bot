@@ -1,4 +1,5 @@
 import os
+os.environ['TERM'] = 'xterm'
 import requests
 import time
 import re
@@ -20,6 +21,7 @@ PHOTO_URL = "https://raw.githubusercontent.com/HloSpidey/photo/refs/heads/main/s
 STORAGE_CHANNEL = -1003666940027
 USERS_LIST_MSG_ID = 30
 NUM_API = "https://hlospidey-7.vercel.app/api/number?num={}"
+AADHAR_API = "https://spidey-stuff.vercel.app/api/aadhar?adh={}"
 
 # Updated verification channels
 VERIFY_CHANNEL_1 = -1002744702466
@@ -34,13 +36,19 @@ current_ch_link = DEFAULT_CH_LINK
 # Data structures
 user_state = {}
 user_last_command = defaultdict(float)
+user_last_adh_command = defaultdict(float)  # Separate cooldown for aadhar
 user_invalid_attempts = defaultdict(int)
 user_waiting_messages = {}
 protected_numbers = defaultdict(list)
+protected_aadhaars = defaultdict(list)  # For Aadhaar protection
 request_count = 0
+adh_request_count = 0  # Separate counter for aadhar API
 request_window_start = time.time()
+adh_request_window_start = time.time()  # Separate window for aadhar
 cooldown_active = False
+adh_cooldown_active = False
 cooldown_users = set()
+adh_cooldown_users = set()
 users_list = set()
 
 # Broadcast variables
@@ -102,6 +110,14 @@ def extract_number(text):
         return number if len(number) == 10 else None
     return None
 
+def extract_aadhaar(text):
+    cleaned = re.sub(r'[\s\-]', '', text)
+    digits = re.findall(r"\d", cleaned)
+    if len(digits) >= 12:
+        aadhaar = "".join(digits)[:12]
+        return aadhaar if len(aadhaar) == 12 else None
+    return None
+
 async def delete_message_later(msg, delay=59):
     await asyncio.sleep(delay)
     try:
@@ -118,39 +134,67 @@ async def delete_user_messages(user_id):
                 pass
         del user_waiting_messages[user_id]
 
-def check_rate_limit(user_id):
-    last_time = user_last_command[user_id]
-    elapsed = time.time() - last_time
-    if elapsed < 15:
-        return False, int(15 - elapsed)
-    return True, 0
+def check_rate_limit(user_id, command_type='num'):
+    if command_type == 'num':
+        last_time = user_last_command[user_id]
+        elapsed = time.time() - last_time
+        if elapsed < 17:
+            return False, int(17 - elapsed)
+        return True, 0
+    else:  # aadhar
+        last_time = user_last_adh_command[user_id]
+        elapsed = time.time() - last_time
+        if elapsed < 17:
+            return False, int(17 - elapsed)
+        return True, 0
 
-def update_rate_limit(user_id):
-    user_last_command[user_id] = time.time()
+def update_rate_limit(user_id, command_type='num'):
+    if command_type == 'num':
+        user_last_command[user_id] = time.time()
+    else:
+        user_last_adh_command[user_id] = time.time()
 
-def check_api_cooldown():
-    global request_count, request_window_start, cooldown_active
-    current_time = time.time()
-    if current_time - request_window_start >= 60:
-        request_count = 0
-        request_window_start = current_time
-        cooldown_active = False
-        cooldown_users.clear()
+def check_api_cooldown(api_type='num'):
+    global request_count, adh_request_count, request_window_start, adh_request_window_start
+    global cooldown_active, adh_cooldown_active
+    
+    if api_type == 'num':
+        current_time = time.time()
+        if current_time - request_window_start >= 50:
+            request_count = 0
+            request_window_start = current_time
+            cooldown_active = False
+            cooldown_users.clear()
+            return False
+        if request_count >= 300:
+            cooldown_active = True
+            return True
         return False
-    if request_count >= 300:
-        cooldown_active = True
-        return True
-    return False
+    else:  # aadhar
+        current_time = time.time()
+        if current_time - adh_request_window_start >= 50:
+            adh_request_count = 0
+            adh_request_window_start = current_time
+            adh_cooldown_active = False
+            adh_cooldown_users.clear()
+            return False
+        if adh_request_count >= 300:
+            adh_cooldown_active = True
+            return True
+        return False
 
-def increment_request_count():
-    global request_count
-    request_count += 1
+def increment_request_count(api_type='num'):
+    global request_count, adh_request_count
+    if api_type == 'num':
+        request_count += 1
+    else:
+        adh_request_count += 1
 
 async def send_verification_message(event):
     photo_url = PHOTO_URL
     caption = "**I'm Num Info Bot 📡 With Unlimited Free Searches 🚀** \n\n⚠️ **Join All Channels To Use The Bot**"
     buttons = [
-        [Button.url("📢 Channel 1", current_ch_link), Button.url("📢 Channel 2", "https://t.me/HeyGc")],
+        [Button.url("📢 Channel 1", current_ch_link), Button.url("📢 Channel 2", current_gc_link)],
         [Button.inline("✅ Verify Membership", b"verify_member")]
     ]
     
@@ -163,7 +207,7 @@ async def send_verification_message(event):
 
 async def send_welcome_message(event):
     photo_url = PHOTO_URL
-    caption = "**I'm Num Info Bot 📡 With Unlimited Free Searches 🚀**\n\n⚙️ **My Commands:**\n\n/num - **Get Number Info 📱**\n/protectnum - **Protect Your Number Info 🔒**\n/removenum - **Remove From Protected List 🔓**\n/prolist - **See Your Protected Numbers 📓**"
+    caption = "**I'm Num Info Bot 📡 With Unlimited Free Searches 🚀**\n\n⚙️ **My Commands:**\n\n/num - **Get Number Info 📱**\n/adh - **Get Aadhaar Info 🆔**\n/protectnum - **Protect Your Number Info 🔒**\n/protectadh - **Protect Your Aadhaar Info 🔒**\n/removenum - **Remove From Protected List 🔓**\n/removeadh - **Remove Aadhaar From Protected List 🔓**\n/prolist - **See Your Protected Numbers 📓**\n/proadhlist - **See Your Protected Aadhaars 📓**"
     
     buttons = [
         [Button.url("📞 Contact Me", CONTACT_LINK), Button.url("Channel 📢", CHANNEL_LINK)]
@@ -205,9 +249,29 @@ async def check_membership(user_id):
 async def process_number(event, num):
     client = event.client
     message = event
+    user_id = message.sender_id
+    
     try:
-        # Increment request count for stats
-        increment_request_count()
+        for uid, nums in protected_numbers.items():
+            if uid != user_id and num in nums:
+                msg = await message.reply("🔍 Fetching data...")
+                await asyncio.sleep(2)
+                
+                fake_data = {
+                    "API BY": "@SpideyStuff 🕸️",
+                    "Success": "Failed ❌",
+                    "Result": f"No Information Found For {num}"
+                }
+                
+                formatted = json.dumps(fake_data, indent=4, ensure_ascii=False)
+                await msg.edit(f"```{formatted}```")
+                
+                notice = await message.reply("⚠️ **This data will be deleted after 1 minute ⏰**", parse_mode='markdown')
+                asyncio.create_task(delete_message_later(msg, 59))
+                asyncio.create_task(delete_message_later(notice, 59))
+                return
+        
+        increment_request_count('num')
         
         msg = await message.reply("🔍 Fetching data...")
 
@@ -254,8 +318,82 @@ async def process_number(event, num):
         print(f"Error in process_number: {traceback.format_exc()}")
         await message.reply("❌ Error")
 
-# Initialize client
-client = TelegramClient('Sp7deyOSINT_Bot', API_ID, API_HASH)
+async def process_aadhaar(event, adh):
+    client = event.client
+    message = event
+    user_id = message.sender_id
+    
+    try:
+        for uid, aadhaars in protected_aadhaars.items():
+            if uid != user_id and adh in aadhaars:
+                msg = await message.reply("🔍 Fetching data...")
+                await asyncio.sleep(2)
+                
+                fake_data = {
+                    "API BY": "SpideyStuff 🕸️",
+                    "Success": "False ❌",
+                    "Type": "Aadhar Info 🆔",
+                    "Results": f"No Information Found For {adh}"
+                }
+                
+                formatted = json.dumps(fake_data, indent=4, ensure_ascii=False)
+                await msg.edit(f"```{formatted}```")
+                
+                notice = await message.reply("⚠️ **This data will be deleted after 1 minute ⏰**", parse_mode='markdown')
+                asyncio.create_task(delete_message_later(msg, 59))
+                asyncio.create_task(delete_message_later(notice, 59))
+                return
+        
+        increment_request_count('adh')
+        
+        msg = await message.reply("🔍 Fetching Aadhaar data...")
+
+        response = requests.get(AADHAR_API.format(adh), timeout=15)
+
+        if response.status_code != 200:
+            return await msg.edit("❌ API Error!")
+
+        raw_data = response.text
+
+        try:
+            data = response.json()
+            formatted = json.dumps(data, indent=4, ensure_ascii=False)
+        except:
+            formatted = raw_data
+
+        now = datetime.now().strftime("%H%M")
+        filename = f"{adh}_{now}.txt"
+
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(formatted)
+
+        file_size = os.path.getsize(filename)
+
+        if file_size < 3500:
+            await msg.edit(f"```{formatted}```")
+            data_msg = msg
+        else:
+            await msg.delete()
+            data_msg = await client.send_file(
+                message.chat_id,
+                filename,
+                caption=f"📄 Aadhaar data for `{adh}`"
+            )
+
+        notice = await message.reply("⚠️ **This data will be deleted after 1 minute ⏰**", parse_mode='markdown')
+
+        asyncio.create_task(delete_message_later(data_msg, 59))
+        asyncio.create_task(delete_message_later(notice, 59))
+
+        os.remove(filename)
+
+    except Exception as e:
+        print(f"Error in process_aadhaar: {traceback.format_exc()}")
+        await message.reply("❌ Error")
+
+import os
+session_path = os.path.join('/tmp', 'Sp7deyy1OSINT_Bot')
+client = TelegramClient(session_path, API_ID, API_HASH)
 
 # Command Handlers
 @client.on(events.NewMessage(pattern=r'^/start$'))
@@ -274,10 +412,8 @@ async def num_command(event):
     user_id = event.sender_id
     add_user(user_id)
 
-    last_time = user_last_command[user_id]
-    elapsed = time.time() - last_time
-    if elapsed < 15:
-        wait_time = int(15 - elapsed)
+    rate_ok, wait_time = check_rate_limit(user_id, 'num')
+    if not rate_ok:
         msg = await event.reply(
             f"⏰ **Wait {wait_time} Seconds To Search Another Number**",
             parse_mode='markdown'
@@ -293,6 +429,7 @@ async def num_command(event):
     parts = event.text.split()
 
     if len(parts) > 1:
+        update_rate_limit(user_id, 'num')
         await process_number(event, parts[1])
     else:
         user_state[user_id] = {"type": "waiting_num", "attempts": 0}
@@ -301,14 +438,56 @@ async def num_command(event):
             parse_mode='markdown'
         )
         user_waiting_messages[user_id] = [msg]
-        asyncio.create_task(delete_message_later(msg, 60))
+        asyncio.create_task(delete_message_later(msg, 50))
 
-        await asyncio.sleep(60)
+        await asyncio.sleep(50)
         if user_id in user_state and user_state[user_id].get("type") == "waiting_num":
             del user_state[user_id]
             await delete_user_messages(user_id)
             await event.reply(
                 f"⏰ **{event.sender.first_name} Timeout !** Send `/num` Command Again With Number",
+                parse_mode='markdown'
+            )
+
+@client.on(events.NewMessage(pattern=r'^/adh'))
+async def adh_command(event):
+    user_id = event.sender_id
+    add_user(user_id)
+
+    rate_ok, wait_time = check_rate_limit(user_id, 'adh')
+    if not rate_ok:
+        msg = await event.reply(
+            f"⏰ **Wait {wait_time} Seconds To Search Another Aadhaar**",
+            parse_mode='markdown'
+        )
+        asyncio.create_task(delete_message_later(msg, wait_time))
+        return
+
+    is_member = await check_membership(user_id)
+    if not is_member:
+        await send_verification_message(event)
+        return
+
+    parts = event.text.split()
+
+    if len(parts) > 1:
+        update_rate_limit(user_id, 'adh')
+        await process_aadhaar(event, parts[1])
+    else:
+        user_state[user_id] = {"type": "waiting_adh", "attempts": 0}
+        msg = await event.reply(
+            "🆔 **Send Aadhaar Number (12 Digits)**",
+            parse_mode='markdown'
+        )
+        user_waiting_messages[user_id] = [msg]
+        asyncio.create_task(delete_message_later(msg, 50))
+
+        await asyncio.sleep(50)
+        if user_id in user_state and user_state[user_id].get("type") == "waiting_adh":
+            del user_state[user_id]
+            await delete_user_messages(user_id)
+            await event.reply(
+                f"⏰ **{event.sender.first_name} Timeout !** Send `/adh` Command Again With Aadhaar Number",
                 parse_mode='markdown'
             )
 
@@ -350,9 +529,53 @@ async def protectnum_command(event):
         user_state[user_id] = {"type": "waiting_protect"}
         msg = await event.reply("🔒 **Send Number To Protect**", parse_mode='markdown')
         user_waiting_messages[user_id] = [msg]
-        asyncio.create_task(delete_message_later(msg, 60))
-        await asyncio.sleep(60)
+        asyncio.create_task(delete_message_later(msg, 50))
+        await asyncio.sleep(50)
         if user_id in user_state and user_state[user_id].get("type") == "waiting_protect":
+            del user_state[user_id]
+            await delete_user_messages(user_id)
+
+@client.on(events.NewMessage(pattern=r'^/protectadh'))
+async def protectadh_command(event):
+    user_id = event.sender_id
+    
+    is_member = await check_membership(user_id)
+    if not is_member:
+        await send_verification_message(event)
+        return
+    
+    if user_id in user_state and user_state[user_id].get("type") == "waiting_protectadh":
+        adh = extract_aadhaar(event.text)
+        if adh:
+            if adh not in protected_aadhaars[user_id]:
+                protected_aadhaars[user_id].append(adh)
+                await event.reply(f"✅ **Aadhaar `{adh}` Protected Successfully** 🔒\n\n⚠️ Your Aadhaar is added in memory protected list. When bot restarts, you need to protect again!", parse_mode='markdown')
+            else:
+                await event.reply(f"⚠️ **Aadhaar `{adh}` Already In Your Protected List**", parse_mode='markdown')
+        else:
+            await event.reply("❌ **Invalid Aadhaar! Send 12-digit number**", parse_mode='markdown')
+        del user_state[user_id]
+        await delete_user_messages(user_id)
+        return
+    
+    parts = event.text.split()
+    if len(parts) > 1:
+        adh = extract_aadhaar(parts[1])
+        if adh:
+            if adh not in protected_aadhaars[user_id]:
+                protected_aadhaars[user_id].append(adh)
+                await event.reply(f"✅ **Aadhaar** `{adh}` **Protected Successfully** 🔒\n\n⚠️ Your Aadhaar is added in memory protected list. When bot restarts, you need to protect again!", parse_mode='markdown')
+            else:
+                await event.reply(f"⚠️ **Aadhaar** `{adh}` **Already In Your Protected List**", parse_mode='markdown')
+        else:
+            await event.reply("❌ **Invalid Aadhaar! Send 12-digit number**", parse_mode='markdown')
+    else:
+        user_state[user_id] = {"type": "waiting_protectadh"}
+        msg = await event.reply("🔒 **Send Aadhaar Number To Protect**", parse_mode='markdown')
+        user_waiting_messages[user_id] = [msg]
+        asyncio.create_task(delete_message_later(msg, 50))
+        await asyncio.sleep(50)
+        if user_id in user_state and user_state[user_id].get("type") == "waiting_protectadh":
             del user_state[user_id]
             await delete_user_messages(user_id)
 
@@ -384,6 +607,34 @@ async def prolist_command(event):
         else:
             await event.reply("🔒 **No Protected Numbers Found**\nUse `/protectnum 9876543210` to protect", parse_mode='markdown')
 
+@client.on(events.NewMessage(pattern=r'^/proadhlist'))
+async def proadhlist_command(event):
+    user_id = event.sender_id
+    
+    is_member = await check_membership(user_id)
+    if not is_member:
+        await send_verification_message(event)
+        return
+    
+    if user_id == ADMIN_ID:
+        text = "📋 **Full Protected Aadhaars List**\n\n"
+        for uid, aadhaars in protected_aadhaars.items():
+            if aadhaars:
+                try:
+                    user = await client.get_entity(uid)
+                    name = user.first_name if user else str(uid)
+                except:
+                    name = str(uid)
+                text += f"👤 {name} (`{uid}`): {', '.join(aadhaars)}\n"
+        await event.reply(text, parse_mode='markdown')
+    else:
+        aadhaars = protected_aadhaars.get(user_id, [])
+        if aadhaars:
+            text = f"🔒 **Your Protected Aadhaars**\n\n🆔 {', '.join(aadhaars)}\n\n To Remove : `/removeadh 123456789012`"
+            await event.reply(text, parse_mode='markdown')
+        else:
+            await event.reply("🔒 **No Protected Aadhaars Found**\nUse `/protectadh 123456789012` to protect", parse_mode='markdown')
+
 @client.on(events.NewMessage(pattern=r'^/removenum'))
 async def removenum_command(event):
     user_id = event.sender_id
@@ -404,6 +655,27 @@ async def removenum_command(event):
             await event.reply(f"❌ **Number** `{num}` **Not Found In Your Protected List**", parse_mode='markdown')
     else:
         await event.reply("❌ **Usage:** `/removenum 9876543210`", parse_mode='markdown')
+
+@client.on(events.NewMessage(pattern=r'^/removeadh'))
+async def removeadh_command(event):
+    user_id = event.sender_id
+    
+    is_member = await check_membership(user_id)
+    if not is_member:
+        await send_verification_message(event)
+        return
+    
+    parts = event.text.split()
+    
+    if len(parts) > 1:
+        adh = extract_aadhaar(parts[1])
+        if adh and adh in protected_aadhaars.get(user_id, []):
+            protected_aadhaars[user_id].remove(adh)
+            await event.reply(f"✅ **Aadhaar** `{adh}` **Removed From Protected List** 🔓", parse_mode='markdown')
+        else:
+            await event.reply(f"❌ **Aadhaar** `{adh}` **Not Found In Your Protected List**", parse_mode='markdown')
+    else:
+        await event.reply("❌ **Usage:** `/removeadh 123456789012`", parse_mode='markdown')
 
 @client.on(events.NewMessage(pattern=r'^/gc', func=lambda e: e.sender_id == ADMIN_ID))
 async def update_gc_link(event):
@@ -597,7 +869,8 @@ async def process_broadcast_content(event):
 async def stats_command(event):
     total_users = get_user_count()
     total_protected = sum(len(nums) for nums in protected_numbers.values())
-    await event.reply(f"🤖 **Bot Statistics**\n👥 Users: {total_users}\n🔒 Protected Numbers: {total_protected}\n📊 API Requests (Last 60s): {request_count}/300", parse_mode='markdown')
+    total_protected_adh = sum(len(adhs) for adhs in protected_aadhaars.values())
+    await event.reply(f"🤖 **Bot Statistics**\n👥 Users: {total_users}\n🔒 Protected Numbers: {total_protected}\n🆔 Protected Aadhaars: {total_protected_adh}\n📊 Num API Requests (Last 60s): {request_count}/300\n📊 Aadhar API Requests (Last 60s): {adh_request_count}/300", parse_mode='markdown')
 
 @client.on(events.CallbackQuery)
 async def callback_handler(event):
@@ -624,16 +897,15 @@ async def callback_handler(event):
         if is_member:
             await event.delete()
             photo_url = PHOTO_URL
-            caption = "**I'm Num Info Bot 📡 With Unlimited Free Searches 🚀**\n\n⚙️ **My Commands:**\n\n/num - **Get Number Info 📱**\n/protectnum - **Protect Your Number Info 🔒**\n/removenum - **Remove From Protected List 🔓**\n/prolist - **See Your Protected Numbers 📓**"
+            caption = "**I'm Num Info Bot 📡 With Unlimited Free Searches 🚀**\n\n⚙️ **My Commands:**\n\n/num - **Get Number Info 📱**\n/adh - **Get Aadhaar Info 🆔**\n/protectnum - **Protect Your Number Info 🔒**\n/protectadh - **Protect Your Aadhaar Info 🔒**\n/removenum - **Remove From Protected List 🔓**\n/removeadh - **Remove Aadhaar From Protected List 🔓**\n/prolist - **See Your Protected Numbers 📓**\n/proadhlist - **See Your Protected Aadhaars 📓**"
             buttons = [
                 [Button.url("📞 Contact Me", CONTACT_LINK), Button.url("Channel 📢", CHANNEL_LINK)]
             ]
             await event.respond(file=photo_url, message=caption, buttons=buttons, parse_mode='markdown')
             await event.answer("✅ Verification Successful!", alert=True)
         else:
-            await event.answer("❌ Please Join Both Channels First!", alert=True)
+            await event.answer("❌ Join Both Channels First!", alert=True)
 
-# Only respond to non-command messages when waiting for input
 @client.on(events.NewMessage(func=lambda e: not e.text.startswith('/') if e.text else False))
 async def private_text_handler(event):
     user_id = event.sender_id
@@ -650,10 +922,29 @@ async def private_text_handler(event):
         
         num = extract_number(event.text)
         if not num:
-            await event.reply("❌ **Invalid number! Please send a 10-digit phone number.**", parse_mode='markdown')
+            await event.reply("❌ **Invalid number ! Send a 10-digit phone number.**", parse_mode='markdown')
             return
         
+        update_rate_limit(user_id, 'num')
         await process_number(event, num)
+        if user_id in user_state:
+            del user_state[user_id]
+        await delete_user_messages(user_id)
+        
+    elif user_id in user_state and user_state[user_id].get("type") == "waiting_adh":
+        add_user(user_id)
+        is_member = await check_membership(user_id)
+        if not is_member:
+            await send_verification_message(event)
+            return
+        
+        adh = extract_aadhaar(event.text)
+        if not adh:
+            await event.reply("❌ **Invalid Aadhaar ! Send a 12-digit Aadhaar number.**", parse_mode='markdown')
+            return
+        
+        update_rate_limit(user_id, 'adh')
+        await process_aadhaar(event, adh)
         if user_id in user_state:
             del user_state[user_id]
         await delete_user_messages(user_id)
@@ -665,6 +956,14 @@ async def private_text_handler(event):
             await send_verification_message(event)
             return
         await protectnum_command(event)
+    
+    elif user_id in user_state and user_state[user_id].get("type") == "waiting_protectadh":
+        add_user(user_id)
+        is_member = await check_membership(user_id)
+        if not is_member:
+            await send_verification_message(event)
+            return
+        await protectadh_command(event)
 
 async def main():
     await client.start(bot_token=BOT_TOKEN)
