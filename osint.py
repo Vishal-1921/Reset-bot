@@ -976,12 +976,17 @@ async def main():
         await load_users_list()
         me = await client.get_me()
         print(f"Bot Started Successfully! @{me.username}")
+
+        # 🔔 ADD HERE
+        try:
+            await client.send_message(
+                172539202,
+                "⚡ Bot Activated Successfully!\n\nStatus: Online ✅"
+            )
+        except Exception as e:
+            print(f"Failed to send startup notification: {e}")
+
         await client.run_until_disconnected()
-    except Exception as e:
-        print(f"Error in main: {e}")
-        traceback.print_exc()
-    finally:
-        await client.disconnect()
 
 if __name__ == "__main__":
     try:
