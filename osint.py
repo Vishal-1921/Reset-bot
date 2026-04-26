@@ -987,6 +987,7 @@ async def main():
             print(f"Failed to send startup notification: {e}")
 
         await client.run_until_disconnected()
+        
 
 if __name__ == "__main__":
     try:
