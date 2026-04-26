@@ -391,16 +391,9 @@ async def process_aadhaar(event, adh):
         print(f"Error in process_aadhaar: {traceback.format_exc()}")
         await message.reply("❌ Error")
 
-import asyncio
-try:
-    loop = asyncio.get_event_loop()
-except RuntimeError:
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
 
-client = TelegramClient('SpNumAdhBot', API_ID, API_HASH, loop=loop)
+client = TelegramClient('SpNumAdhBot', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
-# Command Handlers
 @client.on(events.NewMessage(pattern=r'^/start$'))
 async def start_command(event):
     user_id = event.sender_id
@@ -702,7 +695,6 @@ async def update_ch_link(event):
     else:
         await event.reply("❌ **Usage:** `/ch https://t.me/channel_link`", parse_mode='markdown')
 
-# Broadcast System
 @client.on(events.NewMessage(pattern=r'^/broadcast$', func=lambda e: e.sender_id == ADMIN_ID))
 async def broadcast_command(event):
     global broadcast_active, broadcast_messages, broadcast_status_msg
@@ -970,44 +962,5 @@ async def private_text_handler(event):
             return
         await protectadh_command(event)
 
-async def main():
-    try:
-        await client.start(bot_token=BOT_TOKEN)
-        await load_users_list()
-        me = await client.get_me()
-        print(f"Bot Started Successfully! @{me.username}")
-
-        # 🔔 ADD HERE
-        try:
-            await client.send_message(
-                172539202,
-                "⚡ Bot Activated Successfully!\n\nStatus: Online ✅"
-            )
-        except Exception as e:
-            print(f"Failed to send startup notification: {e}")
-
-        await client.run_until_disconnected()
-        
-
-if __name__ == "__main__":
-    try:
-        import asyncio
-        import traceback
-
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_closed():
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        loop.run_until_complete(main())
-
-    except KeyboardInterrupt:
-        print("Bot stopped by user")
-
-    except Exception as e:
-        print(f"Fatal error: {e}")
-        traceback.print_exc()
+print("Bot Started Successfully!")
+client.run_until_disconnected()
