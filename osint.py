@@ -391,9 +391,14 @@ async def process_aadhaar(event, adh):
         print(f"Error in process_aadhaar: {traceback.format_exc()}")
         await message.reply("❌ Error")
 
-import os
-session_path = os.path.join('/tmp', 'Sp7deyy1OSINT_Bot')
-client = TelegramClient(session_path, API_ID, API_HASH)
+import asyncio
+try:
+    loop = asyncio.get_event_loop()
+except RuntimeError:
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+client = TelegramClient('SpNumAdhBot', API_ID, API_HASH, loop=loop)
 
 # Command Handlers
 @client.on(events.NewMessage(pattern=r'^/start$'))
@@ -966,11 +971,33 @@ async def private_text_handler(event):
         await protectadh_command(event)
 
 async def main():
-    await client.start(bot_token=BOT_TOKEN)
-    await load_users_list()
-    me = await client.get_me()
-    print(f"Bot Started Successfully! @{me.username}")
-    await client.run_until_disconnected()
+    try:
+        await client.start(bot_token=BOT_TOKEN)
+        await load_users_list()
+        me = await client.get_me()
+        print(f"Bot Started Successfully! @{me.username}")
+        await client.run_until_disconnected()
+    except Exception as e:
+        print(f"Error in main: {e}")
+        traceback.print_exc()
+    finally:
+        await client.disconnect()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        # Get or create event loop
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_closed():
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        loop.run_until_complete(main())
+    except KeyboardInterrupt:
+        print("Bot stopped by user")
+    except Exception as e:
+        print(f"Fatal error: {e}")
+        traceback.print_exc()
