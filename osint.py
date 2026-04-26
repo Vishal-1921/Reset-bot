@@ -207,7 +207,7 @@ async def send_verification_message(event):
 
 async def send_welcome_message(event):
     photo_url = PHOTO_URL
-    caption = "**I'm Num Info Bot 📡 With Unlimited Free Searches 🚀**\n\n⚙️ **My Commands:**\n\n/num - **Get Number Info 📱**\n/adh - **Get Aadhaar Info 🆔**\n/protectnum - **Protect Your Number Info 🔒**\n/protectadh - **Protect Your Aadhaar Info 🔒**\n/removenum - **Remove From Protected List 🔓**\n/removeadh - **Remove Aadhaar From Protected List 🔓**\n/prolist - **See Your Protected Numbers 📓**\n/proadhlist - **See Your Protected Aadhaars 📓**"
+    caption = "**I'm Num Info Bot 📡 With Unlimited Free Searches 🚀**\n\n⚙️ **My Commands:**\n\n/num - **Get Number Info 📱**\n/adh - **Get Aadhaar Info 🆔**\n/protectnum - **Protect Your Number Info 🔒**\n/protectadh - **Protect Your Aadhaar Info 🔒**\n/removenum - **Remove From Protected List 🔓**\n/removeadh - **Remove Aadhaar From Protected List 🔓**\n/prolist - **See Your Protected Data 📓**"
     
     buttons = [
         [Button.url("📞 Contact Me", CONTACT_LINK), Button.url("Channel 📢", CHANNEL_LINK)]
@@ -586,52 +586,15 @@ async def prolist_command(event):
         await send_verification_message(event)
         return
     
-    if user_id == ADMIN_ID:
-        text = "📋 **Full Protected Numbers List**\n\n"
-        for uid, numbers in protected_numbers.items():
-            if numbers:
-                try:
-                    user = await client.get_entity(uid)
-                    name = user.first_name if user else str(uid)
-                except:
-                    name = str(uid)
-                text += f"👤 {name} (`{uid}`): {', '.join(numbers)}\n"
-        await event.reply(text, parse_mode='markdown')
-    else:
-        numbers = protected_numbers.get(user_id, [])
-        if numbers:
-            text = f"🔒 **Your Protected Numbers**\n\n📞 {', '.join(numbers)}\n\n To Remove : `/removenum 9876543210`"
-            await event.reply(text, parse_mode='markdown')
-        else:
-            await event.reply("🔒 **No Protected Numbers Found**\nUse `/protectnum 9876543210` to protect", parse_mode='markdown')
-
-@client.on(events.NewMessage(pattern=r'^/proadhlist'))
-async def proadhlist_command(event):
-    user_id = event.sender_id
+    numbers = protected_numbers.get(user_id, [])
+    aadhaars = protected_aadhaars.get(user_id, [])
     
-    is_member = await check_membership(user_id)
-    if not is_member:
-        await send_verification_message(event)
-        return
+    num_text = ", ".join([f"`{n}`" for n in numbers]) if numbers else "`0`"
+    adh_text = ", ".join([f"`{a}`" for a in aadhaars]) if aadhaars else "`0`"
     
-    if user_id == ADMIN_ID:
-        text = "📋 **Full Protected Aadhaars List**\n\n"
-        for uid, aadhaars in protected_aadhaars.items():
-            if aadhaars:
-                try:
-                    user = await client.get_entity(uid)
-                    name = user.first_name if user else str(uid)
-                except:
-                    name = str(uid)
-                text += f"👤 {name} (`{uid}`): {', '.join(aadhaars)}\n"
-        await event.reply(text, parse_mode='markdown')
-    else:
-        aadhaars = protected_aadhaars.get(user_id, [])
-        if aadhaars:
-            text = f"🔒 **Your Protected Aadhaars**\n\n🆔 {', '.join(aadhaars)}\n\n To Remove : `/removeadh 123456789012`"
-            await event.reply(text, parse_mode='markdown')
-        else:
-            await event.reply("🔒 **No Protected Aadhaars Found**\nUse `/protectadh 123456789012` to protect", parse_mode='markdown')
+    text = f"🔒 **Your Protected Data**\n\n📞 **Numbers:** {num_text}\n🆔 **Aadhaar:** {adh_text}\n\n⚠️ Remove Number : `/removenum 9876543210`\n⚠️ Remove Aadhaar : `/removeadh 123456789012`"
+    
+    await event.reply(text, parse_mode='markdown')
 
 @client.on(events.NewMessage(pattern=r'^/removenum'))
 async def removenum_command(event):
@@ -894,7 +857,7 @@ async def callback_handler(event):
         if is_member:
             await event.delete()
             photo_url = PHOTO_URL
-            caption = "**I'm Num Info Bot 📡 With Unlimited Free Searches 🚀**\n\n⚙️ **My Commands:**\n\n/num - **Get Number Info 📱**\n/adh - **Get Aadhaar Info 🆔**\n/protectnum - **Protect Your Number Info 🔒**\n/protectadh - **Protect Your Aadhaar Info 🔒**\n/removenum - **Remove From Protected List 🔓**\n/removeadh - **Remove Aadhaar From Protected List 🔓**\n/prolist - **See Your Protected Numbers 📓**\n/proadhlist - **See Your Protected Aadhaars 📓**"
+            caption = "**I'm Num Info Bot 📡 With Unlimited Free Searches 🚀**\n\n⚙️ **My Commands:**\n\n/num - **Get Number Info 📱**\n/adh - **Get Aadhaar Info 🆔**\n/protectnum - **Protect Your Number Info 🔒**\n/protectadh - **Protect Your Aadhaar Info 🔒**\n/removenum - **Remove From Protected List 🔓**\n/removeadh - **Remove Aadhaar From Protected List 🔓**\n/prolist - **See Your Protected Data 📓**"
             buttons = [
                 [Button.url("📞 Contact Me", CONTACT_LINK), Button.url("Channel 📢", CHANNEL_LINK)]
             ]
@@ -962,5 +925,12 @@ async def private_text_handler(event):
             return
         await protectadh_command(event)
 
+async def notify_admin():
+    try:
+        await client.send_message(ADMIN_ID, "⚡ **I'm Activated** ⚡", parse_mode='markdown')
+    except:
+        pass
+        
 print("Bot Started Successfully!")
+notify_admin()
 client.run_until_disconnected()
