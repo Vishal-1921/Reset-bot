@@ -932,5 +932,5 @@ async def notify_admin():
         pass
         
 print("Bot Started Successfully!")
-notify_admin()
+client.loop.run_until_complete(notify_admin())
 client.run_until_disconnected()
