@@ -27,7 +27,7 @@ AADHAR_API = "https://spidey-stuff.vercel.app/api/aadhar?adh={}"
 VERIFY_CHANNEL_1 = -1002744702466
 VERIFY_CHANNEL_2 = -1003425131774
 
-DEFAULT_GC_LINK = "https://t.me/+E30P3iPg-U9iODhl"
+DEFAULT_GC_LINK = "https://t.me/+4CSKZ4y-v4ZiNTA1"
 DEFAULT_CH_LINK = "https://t.me/spideystuff"
 
 current_gc_link = DEFAULT_GC_LINK
