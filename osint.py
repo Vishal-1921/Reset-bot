@@ -392,7 +392,7 @@ async def process_aadhaar(event, adh):
         await message.reply("❌ Error")
 
 
-client = TelegramClient('SpNumAdhBot', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
+client = TelegramClient('SpN0mAdhBot', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
 @client.on(events.NewMessage(pattern=r'^/start$'))
 async def start_command(event):
@@ -930,7 +930,12 @@ async def notify_admin():
         await client.send_message(ADMIN_ID, "⚡ **I'm Activated** ⚡", parse_mode='markdown')
     except:
         pass
-        
-print("Bot Started Successfully!")
-client.loop.run_until_complete(notify_admin())
+
+async def startup():
+    await load_users_list()
+    print(f"Bot Started Successfully! Users loaded: {len(users_list)}")
+    await notify_admin()
+
+print("At Your Service, Sir...")
+client.loop.run_until_complete(startup())
 client.run_until_disconnected()
