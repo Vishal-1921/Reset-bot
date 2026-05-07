@@ -22,8 +22,8 @@ PHOTO_URL = "https://raw.githubusercontent.com/HloSpidey/photo/refs/heads/main/s
 STORAGE_CHANNEL = -1003666940027
 USERS_LIST_MSG_ID = 30
 NUM_API = "https://hlospidey-7.vercel.app/api/number?num={}"
-Aadhar_API = "https://spidey-stuff.vercel.app/api/Aadhar?adh={}"
-FAMILY_API = "https://atof.onrender.com/full-search?Aadhar={}"
+aadhar_API = "https://spidey-stuff.vercel.app/api/aadhar?adh={}"
+FAMILY_API = "https://atof.onrender.com/full-search?aadhaar={}"
 
 VERIFY_CHANNEL_1 = -1002744702466
 VERIFY_CHANNEL_2 = -1003425131774
@@ -49,7 +49,7 @@ user_last_family_command = defaultdict(float)
 user_invalid_attempts = defaultdict(int)
 user_waiting_messages = {}
 protected_numbers = defaultdict(list)
-protected_Aadhars = defaultdict(list)
+protected_aadhars = defaultdict(list)
 request_count = 0
 adh_request_count = 0
 family_request_count = 0
@@ -125,12 +125,12 @@ def extract_number(text):
         return number if len(number) == 10 else None
     return None
 
-def extract_Aadhar(text):
+def extract_aadhar(text):
     cleaned = re.sub(r'[\s\-]', '', text)
     digits = re.findall(r"\d", cleaned)
     if len(digits) >= 12:
-        Aadhar = "".join(digits)[:12]
-        return Aadhar if len(Aadhar) == 12 else None
+        aadhar = "".join(digits)[:12]
+        return aadhar if len(aadhar) == 12 else None
     return None
 
 async def delete_message_later(msg, delay=59):
@@ -333,7 +333,7 @@ def format_number_data(data, num):
         print(f"Error formatting number data: {e}")
         return None
 
-def format_family_data(data, Aadhar):
+def format_family_data(data, aadhar):
     try:
         if not data.get("success") or not data.get("details"):
             return None
@@ -346,7 +346,7 @@ def format_family_data(data, Aadhar):
             return None
         
         formatted_text = "```Family Data 👨‍👩‍👧‍👦\n\n"
-        formatted_text += f"🆔 Query : {Aadhar}\n"
+        formatted_text += f"🆔 Query : {aadhar}\n"
         
         address = card_info.get('Address', 'null')
         if not address or address.strip() == "":
@@ -541,7 +541,7 @@ async def process_number(event, num):
         print(f"Error in process_number: {traceback.format_exc()}")
         await message.reply("❌ Error")
 
-async def process_Aadhar(event, adh):
+async def process_aadhar(event, adh):
     client = event.client
     message = event
     user_id = message.sender_id
@@ -551,8 +551,8 @@ async def process_Aadhar(event, adh):
         return
     
     try:
-        for uid, Aadhars in protected_Aadhars.items():
-            if uid != user_id and adh in Aadhars:
+        for uid, aadhars in protected_aadhars.items():
+            if uid != user_id and adh in aadhars:
                 msg = await message.reply("🔍 Fetching data...")
                 await asyncio.sleep(2)
                 
@@ -580,7 +580,7 @@ async def process_Aadhar(event, adh):
         
         msg = await message.reply("🔍 Fetching Aadhar data...")
 
-        response = requests.get(Aadhar_API.format(adh), timeout=15)
+        response = requests.get(aadhar_API.format(adh), timeout=15)
 
         if response.status_code != 200:
             return await msg.edit("❌ API Error!")
@@ -619,7 +619,7 @@ async def process_Aadhar(event, adh):
         print(f"Error in process_Aadhar: {traceback.format_exc()}")
         await message.reply("❌ Error")
 
-async def process_family(event, Aadhar):
+async def process_family(event, aadhar):
     client = event.client
     message = event
     user_id = message.sender_id
@@ -629,8 +629,8 @@ async def process_family(event, Aadhar):
         return
     
     try:
-        for uid, Aadhars in protected_Aadhars.items():
-            if uid != user_id and Aadhar in Aadhars:
+        for uid, aadhars in protected_aadhars.items():
+            if uid != user_id and aadhar in aadhars:
                 msg = await message.reply("🔍 Fetching family data...")
                 await asyncio.sleep(3)
                 await msg.edit("❌ **Family Data Not Found !** 📡", parse_mode='markdown')
@@ -649,7 +649,7 @@ async def process_family(event, Aadhar):
         
         msg = await message.reply("🔍 Fetching family data...")
 
-        response = requests.get(FAMILY_API.format(Aadhar), timeout=25)
+        response = requests.get(FAMILY_API.format(aadhar), timeout=25)
 
         if response.status_code != 200:
             await msg.edit("❌ **Family Data Not Found !**", parse_mode='markdown')
@@ -672,7 +672,7 @@ async def process_family(event, Aadhar):
                     asyncio.create_task(delete_message_later(notice, 59))
                 return
             
-            formatted_text = format_family_data(data, Aadhar)
+            formatted_text = format_family_data(data, aadhar)
             
             if formatted_text:
                 if len(formatted_text) < 3500:
@@ -681,7 +681,7 @@ async def process_family(event, Aadhar):
                 else:
                     ist = timezone(timedelta(hours=5, minutes=30))
                     now = datetime.now(ist).strftime("%H%M")
-                    filename = f"family_{Aadhar}_{now}.txt"
+                    filename = f"family_{aadhar}_{now}.txt"
                     with open(filename, "w", encoding="utf-8") as f:
                         f.write(formatted_text)
                     await msg.delete()
@@ -809,7 +809,7 @@ async def adh_command(event):
 
     if len(parts) > 1:
         update_rate_limit(user_id, 'adh')
-        await process_Aadhar(event, parts[1])
+        await process_aadhar(event, parts[1])
     else:
         user_state[user_id] = {"type": "waiting_adh", "attempts": 0}
         msg = await event.reply(
@@ -858,10 +858,10 @@ async def family_command(event):
     parts = event.text.split()
 
     if len(parts) > 1:
-        Aadhar = extract_Aadhar(parts[1])
-        if Aadhar:
+        aadhar = extract_aadhar(parts[1])
+        if aadhar:
             update_rate_limit(user_id, 'family')
-            await process_family(event, Aadhar)
+            await process_family(event, aadhar)
         else:
             await event.reply("❌ **Invalid Aadhar number! Send 12-digit Aadhar**", parse_mode='markdown')
     else:
@@ -974,10 +974,10 @@ async def protectadh_command(event):
         return
     
     if user_id in user_state and user_state[user_id].get("type") == "waiting_protectadh":
-        adh = extract_Aadhar(event.text)
+        adh = extract_aadhar(event.text)
         if adh:
-            if adh not in protected_Aadhars[user_id]:
-                protected_Aadhars[user_id].append(adh)
+            if adh not in protected_aadhars[user_id]:
+                protected_aadhars[user_id].append(adh)
                 await event.reply(f"✅ **Aadhar `{adh}` Protected Successfully** 🔒\n\n⚠️ Your Aadhar is added in memory protected list. When bot restarts, you need to protect again!", parse_mode='markdown')
             else:
                 await event.reply(f"⚠️ **Aadhar `{adh}` Already In Your Protected List**", parse_mode='markdown')
@@ -989,10 +989,10 @@ async def protectadh_command(event):
     
     parts = event.text.split()
     if len(parts) > 1:
-        adh = extract_Aadhar(parts[1])
+        adh = extract_aadhar(parts[1])
         if adh:
-            if adh not in protected_Aadhars[user_id]:
-                protected_Aadhars[user_id].append(adh)
+            if adh not in protected_aadhars[user_id]:
+                protected_aadhars[user_id].append(adh)
                 await event.reply(f"✅ **Aadhar** `{adh}` **Protected Successfully** 🔒\n\n⚠️ Your Aadhar is added in memory protected list. When bot restarts, you need to protect again!", parse_mode='markdown')
             else:
                 await event.reply(f"⚠️ **Aadhar** `{adh}` **Already In Your Protected List**", parse_mode='markdown')
@@ -1018,10 +1018,10 @@ async def prolist_command(event):
         return
     
     numbers = protected_numbers.get(user_id, [])
-    Aadhars = protected_Aadhars.get(user_id, [])
+    aadhars = protected_aadhars.get(user_id, [])
     
     num_text = ", ".join([f"`{n}`" for n in numbers]) if numbers else "`0`"
-    adh_text = ", ".join([f"`{a}`" for a in Aadhars]) if Aadhars else "`0`"
+    adh_text = ", ".join([f"`{a}`" for a in aadhars]) if aadhars else "`0`"
     
     text = f"🔒 **Your Protected Data**\n\n📞 **Numbers:** {num_text}\n🆔 **Aadhar:** {adh_text}\n\n⚠️ Remove Number : `/removenum 9876543210`\n⚠️ Remove Aadhar : `/removeadh 123456789012`"
     
@@ -1060,9 +1060,9 @@ async def removeadh_command(event):
     parts = event.text.split()
     
     if len(parts) > 1:
-        adh = extract_Aadhar(parts[1])
-        if adh and adh in protected_Aadhars.get(user_id, []):
-            protected_Aadhars[user_id].remove(adh)
+        adh = extract_aadhar(parts[1])
+        if adh and adh in protected_aadhars.get(user_id, []):
+            protected_aadhars[user_id].remove(adh)
             await event.reply(f"✅ **Aadhar** `{adh}` **Removed From Protected List** 🔓", parse_mode='markdown')
         else:
             await event.reply(f"❌ **Aadhar** `{adh}` **Not Found In Your Protected List**", parse_mode='markdown')
@@ -1292,7 +1292,7 @@ async def process_broadcast_content(event):
 async def stats_command(event):
     total_users = get_user_count()
     total_protected = sum(len(nums) for nums in protected_numbers.values())
-    total_protected_adh = sum(len(adhs) for adhs in protected_Aadhars.values())
+    total_protected_adh = sum(len(adhs) for adhs in protected_aadhars.values())
     
     current_time = time.time()
     num_reset = int(60 - (current_time - request_window_start)) if (current_time - request_window_start) < 60 else 0
@@ -1428,13 +1428,13 @@ async def private_text_handler(event):
             await send_verification_message(event)
             return
         
-        adh = extract_Aadhar(event.text)
+        adh = extract_aadhar(event.text)
         if not adh:
             await event.reply("❌ **Invalid Aadhar ! Send a 12-digit Aadhar number.**", parse_mode='markdown')
             return
         
         update_rate_limit(user_id, 'adh')
-        await process_Aadhar(event, adh)
+        await process_aadhar(event, adh)
         if user_id in user_state:
             del user_state[user_id]
         await delete_user_messages(user_id)
@@ -1453,7 +1453,7 @@ async def private_text_handler(event):
             await send_verification_message(event)
             return
         
-        adh = extract_Aadhar(event.text)
+        adh = extract_aadhar(event.text)
         if not adh:
             await event.reply("❌ **Invalid Aadhar ! Send a 12-digit Aadhar number.**", parse_mode='markdown')
             return
