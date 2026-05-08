@@ -1383,8 +1383,22 @@ async def private_text_handler(event):
     if broadcast_active and is_admin(user_id):
         return
     
-    if user_id in user_state and user_state[user_id].get("type") == "waiting_num":
+    # CRITICAL FIX: Only process if this user actually has a waiting state
+    if user_id not in user_state:
+        # Ignore messages from users who aren't waiting for input
+        return
+    
+    state = user_state[user_id]
+    state_type = state.get("type")
+    
+    if state_type == "waiting_num":
         add_user(user_id)
+        
+        if all(api_locks.values()) and not is_admin(user_id):
+            await event.reply("🔒 **All APIs are Locked By Spidey** 🕸️\n\n📡 **APIs Activate Hote Hee Bot Tujhe Msg Bhej Dega** ⚡", parse_mode='markdown')
+            del user_state[user_id]
+            await delete_user_messages(user_id)
+            return
         
         if api_locks["num"] and not is_admin(user_id):
             await event.reply("🔧 **Number Info API is Under Maintenance**\n\n📡 **You can still use:**\n• /adh - **Aadhar Information**\n• /family - **Family Members Name**\n\n⚡ Api On Hote Hee Bot Msg Bhej Dega.", parse_mode='markdown')
@@ -1395,27 +1409,30 @@ async def private_text_handler(event):
         is_member = await check_membership(user_id)
         if not is_member:
             await send_verification_message(event)
+            del user_state[user_id]
+            await delete_user_messages(user_id)
             return
         
         num = extract_number(event.text)
         if not num:
             await event.reply("❌ **Invalid number ! Send a 10-digit phone number.**", parse_mode='markdown')
+            del user_state[user_id]
+            await delete_user_messages(user_id)
             return
         
         update_rate_limit(user_id, 'num')
         await process_number(event, num)
-        if user_id in user_state:
-            del user_state[user_id]
+        del user_state[user_id]
         await delete_user_messages(user_id)
         
-    elif user_id in user_state and user_state[user_id].get("type") == "waiting_adh":
+    elif state_type == "waiting_adh":
         add_user(user_id)
         
         if all(api_locks.values()) and not is_admin(user_id):
-            	await event.reply("🔒 **All APIs are Locked By Spidey** 🕸️\n\n📡 **APIs Activate Hote Hee Bot Tujhe Msg Bhej Dega** ⚡", parse_mode='markdown')
-            	del user_state[user_id]
-            	await delete_user_messages(user_id)
-            	return
+            await event.reply("🔒 **All APIs are Locked By Spidey** 🕸️\n\n📡 **APIs Activate Hote Hee Bot Tujhe Msg Bhej Dega** ⚡", parse_mode='markdown')
+            del user_state[user_id]
+            await delete_user_messages(user_id)
+            return
         
         if api_locks["adh"] and not is_admin(user_id):
             await event.reply("🔧 **Aadhar API is Under Maintenance**\n\n📡 **You can still use:**\n• /num - **Number Information**\n• /family - **Family Members Name**\n\n⚡ Api On Hote Hee Bot Msg Bhej Dega.", parse_mode='markdown')
@@ -1426,21 +1443,30 @@ async def private_text_handler(event):
         is_member = await check_membership(user_id)
         if not is_member:
             await send_verification_message(event)
+            del user_state[user_id]
+            await delete_user_messages(user_id)
             return
         
         adh = extract_aadhar(event.text)
         if not adh:
             await event.reply("❌ **Invalid Aadhar ! Send a 12-digit Aadhar number.**", parse_mode='markdown')
+            del user_state[user_id]
+            await delete_user_messages(user_id)
             return
         
         update_rate_limit(user_id, 'adh')
         await process_aadhar(event, adh)
-        if user_id in user_state:
-            del user_state[user_id]
+        del user_state[user_id]
         await delete_user_messages(user_id)
     
-    elif user_id in user_state and user_state[user_id].get("type") == "waiting_family":
+    elif state_type == "waiting_family":
         add_user(user_id)
+        
+        if all(api_locks.values()) and not is_admin(user_id):
+            await event.reply("🔒 **All APIs are Locked By Spidey** 🕸️\n\n📡 **APIs Activate Hote Hee Bot Tujhe Msg Bhej Dega** ⚡", parse_mode='markdown')
+            del user_state[user_id]
+            await delete_user_messages(user_id)
+            return
         
         if api_locks["family"] and not is_admin(user_id):
             await event.reply("🔧 **Family Data API is Under Maintenance**\n\n📡 **You can still use :**\n• /num - **Number Information**\n• /adh - **Aadhar Information**\n\n⚡ Api On Hote Hee Bot Msg Bhej Dega.", parse_mode='markdown')
@@ -1451,32 +1477,39 @@ async def private_text_handler(event):
         is_member = await check_membership(user_id)
         if not is_member:
             await send_verification_message(event)
+            del user_state[user_id]
+            await delete_user_messages(user_id)
             return
         
         adh = extract_aadhar(event.text)
         if not adh:
             await event.reply("❌ **Invalid Aadhar ! Send a 12-digit Aadhar number.**", parse_mode='markdown')
+            del user_state[user_id]
+            await delete_user_messages(user_id)
             return
         
         update_rate_limit(user_id, 'family')
         await process_family(event, adh)
-        if user_id in user_state:
-            del user_state[user_id]
+        del user_state[user_id]
         await delete_user_messages(user_id)
         
-    elif user_id in user_state and user_state[user_id].get("type") == "waiting_protect":
+    elif state_type == "waiting_protect":
         add_user(user_id)
         is_member = await check_membership(user_id)
         if not is_member:
             await send_verification_message(event)
+            del user_state[user_id]
+            await delete_user_messages(user_id)
             return
         await protectnum_command(event)
     
-    elif user_id in user_state and user_state[user_id].get("type") == "waiting_protectadh":
+    elif state_type == "waiting_protectadh":
         add_user(user_id)
         is_member = await check_membership(user_id)
         if not is_member:
             await send_verification_message(event)
+            del user_state[user_id]
+            await delete_user_messages(user_id)
             return
         await protectadh_command(event)
 
