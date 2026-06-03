@@ -15,7 +15,7 @@ BOT_TOKEN = "8655956389:AAHITB8xDYmIPYDSa_dOVE4P6CZgfiR77ac"
 API_ID = 6
 API_HASH = 'eb06d4abfb49dc3eeb1aeb98ae0f581e'
 ADMIN_IDS = [1725301348]
-CONTACT_LINK = "https://t.me/Hkxpidey"
+CONTACT_LINK = "https://t.me/HloSpidey"
 CHANNEL_LINK = "https://t.me/+J-0a5CaeIZZiYzNl"
 PHOTO_URL = "https://raw.githubusercontent.com/HloSpidey/photo/refs/heads/main/ss.jpg"
 STORAGE_CHANNEL = -1003666940027
@@ -236,7 +236,7 @@ async def send_verification_message(event):
     photo_url = PHOTO_URL
     caption = "**I'm Num+Family Info Bot 📡 With Unlimited Searches 🚀** \n\n⚠️ **Join All Channels To Use The Bot**"
     buttons = [
-        [Button.url("**[ CHANNEL 1 ]**", VERIFY_LINK_1), Button.url("**[ CHANNEL 2 ]**", VERIFY_LINK_2)],
+        [Button.url("[ 𝗖𝗛𝗔𝗡𝗡𝗘𝗟 𝟭 ]", VERIFY_LINK_1), Button.url("[ 𝗖𝗛𝗔𝗡𝗡𝗘𝗟 𝟮 ]", VERIFY_LINK_2)],
         [Button.inline("✅ Verify Membership", b"verify_member")]
     ]
     try:
@@ -583,7 +583,7 @@ async def num_command(event):
         return
     days_left = get_user_access_days(user_id, 'num')
     if days_left <= 0 and not is_admin(user_id):
-        await event.reply(f"Hey {event.sender.first_name} , You Don't Have Premium Access To Use This Bot. Access Plan :\n\nMonthly Unlimited Searches : 3̶0̶0̶ ❌ 200rs. Only ! ✅\nWeekly Unlimited Searches : 99rs\n\nContact Bot @Hlo_Spidey_Bot ko msg send karde ki monthly access chahiye.", parse_mode='markdown')
+        await event.reply(f"Hey {event.sender.first_name} , You Don't Have Premium Access To Use This Bot. Access Plan :\n\nMonthly Unlimited Searches : ~~300~~ ❌ **200**rs. Only ! ✅\nWeekly Unlimited Searches : 99rs\n\nContact Bot @Hlo_Spidey_Bot ko msg send karde ki monthly access chahiye.", parse_mode='markdown')
         return
     parts = event.text.split()
     if len(parts) > 1:
@@ -1025,7 +1025,7 @@ async def private_text_handler(event):
             return
         days_left = get_user_access_days(user_id, 'num')
         if days_left <= 0 and not is_admin(user_id):
-            await event.reply(f"Hey {event.sender.first_name} , You Don't Have Premium Access To Use This Bot. Access Plan :\n\nMonthly Unlimited Searches : 3̶0̶0̶ ❌ 200rs. Only ! ✅\nWeekly Unlimited Searches : 99rs\n\nContact Bot @Hlo_Spidey_Bot ko msg send karde ki monthly access chahiye.", parse_mode='markdown')
+            await event.reply(f"Hey {event.sender.first_name} , You Don't Have Premium Access To Use This Bot. Access Plan :\n\nMonthly Unlimited Searches : ~~300~~ ❌ **200**rs. Only ! ✅\nWeekly Unlimited Searches : 99rs\n\nContact Bot @Hlo_Spidey_Bot ko msg send karde ki monthly access chahiye.", parse_mode='markdown')
             del user_state[user_id]
             await delete_user_messages(user_id)
             return
