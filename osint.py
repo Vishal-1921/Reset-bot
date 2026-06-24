@@ -583,7 +583,7 @@ async def num_command(event):
         return
     days_left = get_user_access_days(user_id, 'num')
     if days_left <= 0 and not is_admin(user_id):
-        await event.reply(f"Hey {event.sender.first_name} , You Don't Have Premium Access To Use This Bot. Access Plan :\n\nMonthly Unlimited Searches : ~~300~~ ❌ **100**rs. Only ! ✅\nWeekly Unlimited Searches : 70rs\n\nContact @HloSpidey For Unlimited Access.", parse_mode='markdown')
+        await event.reply(f"Hey {event.sender.first_name} , You Don't Have Premium Access To Use This Bot. Access Plan :\n\nMonthly Unlimited Searches : ~~300~~ ❌ **200**rs. Only ! ✅\nWeekly Unlimited Searches : 100rs\n\nContact @HloSpidey For Unlimited Access.", parse_mode='markdown')
         return
     parts = event.text.split()
     if len(parts) > 1:
@@ -763,7 +763,7 @@ async def stopnum_command(event):
         try:
             user = await client.get_entity(user_id)
             first_name = user.first_name
-            await client.send_message(user_id, f"Hey {first_name} ! Your Number Info Access Has Been Revoked. ⌛🥀 Contact @HloSpidey To Get Monthly Unlimited Access in **100rs** .", parse_mode='markdown')
+            await client.send_message(user_id, f"Hey {first_name} ! Your Number Info Access Has Been Revoked. ⌛🥀 Contact @HloSpidey To Get Monthly Unlimited Access in **200rs** .", parse_mode='markdown')
         except:
             pass
     except ValueError:
@@ -802,7 +802,7 @@ async def stop_command(event):
         try:
             user = await client.get_entity(user_id)
             first_name = user.first_name
-            await client.send_message(user_id, f"Hey {first_name} ! Your Access Has Been Revoked. ⌛🥀 Contact @HloSpidey To Get Monthly Unlimited Access in **100rs** .", parse_mode='markdown')
+            await client.send_message(user_id, f"Hey {first_name} ! Your Access Has Been Revoked. ⌛🥀 Contact @HloSpidey To Get Monthly Unlimited Access in **200rs** .", parse_mode='markdown')
         except:
             pass
     except ValueError:
@@ -1025,7 +1025,7 @@ async def private_text_handler(event):
             return
         days_left = get_user_access_days(user_id, 'num')
         if days_left <= 0 and not is_admin(user_id):
-            await event.reply(f"Hey {event.sender.first_name} , You Don't Have Premium Access To Use This Bot. Access Plan :\n\nMonthly Unlimited Searches : ~~300~~ ❌ **100**rs. Only ! ✅\nWeekly Unlimited Searches : 70rs\n\nContact @HloSpidey For Unlimited Access.", parse_mode='markdown')
+            await event.reply(f"Hey {event.sender.first_name} , You Don't Have Premium Access To Use This Bot. Access Plan :\n\nMonthly Unlimited Searches : ~~300~~ ❌ **200**rs. Only ! ✅\nWeekly Unlimited Searches : 100rs\n\nContact @HloSpidey For Unlimited Access.", parse_mode='markdown')
             del user_state[user_id]
             await delete_user_messages(user_id)
             return
