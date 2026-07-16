@@ -11,7 +11,7 @@ from datetime import datetime, timezone, timedelta
 from telethon import TelegramClient, events, Button
 from telethon.errors import FloodWaitError, ChannelPrivateError, UserNotParticipantError
 
-BOT_TOKEN = "8655956389:AAEecYiBjkQyYswKkuvHMzUfytsoYHQBtxE"
+BOT_TOKEN = "8655956389:AAFSY3J8j6kfv6e_J-uFa3rviav2dKKLxXc"
 API_ID = 6
 API_HASH = 'eb06d4abfb49dc3eeb1aeb98ae0f581e'
 ADMIN_IDS = [1725301348]
